@@ -1,29 +1,67 @@
-import express from 'express';
-import {
-  createReview,
-  getEquipmentReviews,
-  getFarmerReviews,
-  getRenterReviews,
-  respondToReview,
-  deleteReview,
-} from '../controllers/reviewController.js';
-import { protect, authorize } from '../middleware/auth.js';
-import { uploadMultiple } from '../middleware/upload.js';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-const router = express.Router();
+export const protect = async (req, res, next) => {
+  try {
+    let token;
 
-// Public routes
-router.get('/equipment/:equipmentId', getEquipmentReviews);
+    // Check for token in Authorization header
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith('Bearer')
+    ) {
+      token = req.headers.authorization.split(' ')[1];
+    }
 
-// Protected routes - Farmer
-router.post('/', protect, authorize('farmer'), uploadMultiple, createReview);
-router.get('/farmer/my-reviews', protect, authorize('farmer'), getFarmerReviews);
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to access this route',
+      });
+    }
 
-// Protected routes - Renter
-router.get('/renter/received', protect, authorize('renter'), getRenterReviews);
-router.put('/:id/respond', protect, authorize('renter'), respondToReview);
+    try {
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-// Admin only
-router.delete('/:id', protect, authorize('admin'), deleteReview);
+      // Get user from token
+      req.user = await User.findById(decoded.id).select('-__v');
 
-export default router;
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
+
+      if (!req.user.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'User account is deactivated',
+        });
+      }
+
+      next();
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to access this route',
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Grant access to specific roles
+export const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `User role '${req.user.role}' is not authorized to access this route`,
+      });
+    }
+    next();
+  };
+};
