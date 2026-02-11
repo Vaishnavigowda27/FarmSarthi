@@ -1,12 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FaTractor, FaUser, FaGlobe } from 'react-icons/fa';
-import useAuthStore from '../context/authStore';
+import { useAuth } from '../context/authStore';
+
+
+
 
 const Navbar = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'en' ? 'kn' : 'en';
