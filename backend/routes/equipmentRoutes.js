@@ -2,7 +2,7 @@ import express from 'express';
 import Equipment from '../models/Equipment.js';
 import User from '../models/User.js';
 import { authenticate, authorizeRoles } from '../middleware/auth.js';
-import { calculateDistance } from '../utils/distance.js';
+import { calculateDistance } from '../utils/distanceCalculator.js';
 
 const router = express.Router();
 

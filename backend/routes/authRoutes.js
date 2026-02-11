@@ -1,7 +1,7 @@
 import express from 'express';
 import User from '../models/User.js';
 import OTP from '../models/OTP.js';
-import { generateOTP, sendOTP } from '../utils/twilio.js';
+import { generateOTP, sendOTP } from '../utils/twilioService.js';
 import generateToken from '../utils/generateToken.js';
 
 
