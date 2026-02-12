@@ -10,12 +10,19 @@
     "register": "Register",
     "logout": "Logout"
   },
+  
   "home": {
-    "title": "Rent Farm Equipment Near You",
-    "subtitle": "Find tractors, harvesters, and more within 10km",
-    "getStarted": "Get Started",
-    "findEquipment": "Find Equipment"
+    "appName": "FarmSaarthi",
+    "title": "Agricultural Equipment Rental Platform",
+    "subtitle": "Rent agricultural equipment easily. Connect farmers with equipment owners.",
+    "searchTitle": "Search Equipment",
+    "searchDesc": "Find equipment near your farm",
+    "bookTitle": "Book Slots",
+    "bookDesc": "Reserve equipment for your schedule",
+    "payTitle": "Pay Securely",
+    "payDesc": "Advance payment with Razorpay"
   },
+  
   "auth": {
     "phone": "Phone Number",
     "otp": "Enter OTP",
@@ -61,6 +68,8 @@
     "cancel": "Cancel",
     "submit": "Submit",
     "back": "Back",
-    "next": "Next"
+    "next": "Next",
+    "login": "Login",
+    "register": "Register"
   }
 }
