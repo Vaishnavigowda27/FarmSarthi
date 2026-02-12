@@ -1,118 +1,158 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import API from '../utils/mockAPI.js';
+import { useTranslation } from 'react-i18next';
+import api from '../services/api';
+import { formatCurrency, showToast } from '../utils/helpers';
 
-export default function AdminDashboard() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [stats, setStats] = useState({ users: 0, equipments: 0, bookings: 0, conflicts: 0 });
-  const [allEquipments, setAllEquipments] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
+const AdminDashboard = () => {
+  const { t } = useTranslation();
+  const [stats, setStats] = useState(null);
+  const [pendingEquipment, setPendingEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
-      return;
-    }
-    
-    const userData = JSON.parse(storedUser);
-    setUser(userData);
-    loadData();
+    loadDashboard();
   }, []);
 
-  const loadData = async () => {
+  const loadDashboard = async () => {
     try {
-      const [statsData, eqData, userData] = await Promise.all([
-        API.get('/admin/stats'),
-        API.get('/admin/equipments'),
-        API.get('/admin/users')
+      const [dashboardRes, equipmentRes] = await Promise.all([
+        api.get('/admin/dashboard'),
+        api.get('/admin/equipment/pending')
       ]);
       
-      setStats(statsData.data || { users: 0, equipments: 0, bookings: 0, conflicts: 0 });
-      setAllEquipments(eqData.data || []);
-      setAllUsers(userData.data || []);
+      setStats(dashboardRes.data.stats);
+      setPendingEquipment(equipmentRes.data.equipment || []);
     } catch (error) {
-      console.error('Error loading data:', error);
+      showToast('Failed to load dashboard', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    localStorage.clear();
-    navigate('/login');
+  const handleVerify = async (id, status) => {
+    try {
+      await api.put(`/admin/equipment/${id}/verify`, { 
+        verificationStatus: status 
+      });
+      showToast(`Equipment ${status}!`, 'success');
+      loadDashboard();
+    } catch (error) {
+      showToast('Verification failed', 'error');
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary"></div>
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-green-600">Admin Dashboard</h1>
-          <div className="flex gap-4 items-center">
-            <span className="text-gray-700">Admin: {user?.name || 'Admin'}</span>
-            <button onClick={logout} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logout</button>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        <h1 className="text-4xl font-bold mb-8 gradient-primary bg-clip-text text-transparent">
+          {t('dashboard.admin')}
+        </h1>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-gray-500 text-sm mb-2">Total Users</h3>
-            <p className="text-3xl font-bold text-blue-600">{stats.users}</p>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Total Users</div>
+            <div className="text-3xl font-bold text-primary">
+              {stats?.totalUsers || 0}
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-gray-500 text-sm mb-2">Total Equipment</h3>
-            <p className="text-3xl font-bold text-green-600">{stats.equipments}</p>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Total Equipment</div>
+            <div className="text-3xl font-bold text-green-600">
+              {stats?.totalEquipment || 0}
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-gray-500 text-sm mb-2">Total Bookings</h3>
-            <p className="text-3xl font-bold text-purple-600">{stats.bookings}</p>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Total Bookings</div>
+            <div className="text-3xl font-bold text-blue-600">
+              {stats?.totalBookings || 0}
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-gray-500 text-sm mb-2">Conflicts</h3>
-            <p className="text-3xl font-bold text-red-600">{stats.conflicts}</p>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Platform Revenue</div>
+            <div className="text-3xl font-bold text-secondary">
+              {formatCurrency(stats?.totalRevenue || 0)}
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">All Users</h2>
-          <table className="w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2 text-left">Name</th>
-                <th className="px-4 py-2 text-left">Phone</th>
-                <th className="px-4 py-2 text-left">Role</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allUsers.map(u => (
-                <tr key={u._id} className="border-b">
-                  <td className="px-4 py-2">{u.name}</td>
-                  <td className="px-4 py-2">{u.phone}</td>
-                  <td className="px-4 py-2">
-                    <span className={`px-2 py-1 rounded text-xs ${u.role === 'farmer' ? 'bg-blue-100 text-blue-700' : u.role === 'renter' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>{u.role}</span>
-                  </td>
-                </tr>
+        {/* User Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Farmers</div>
+            <div className="text-2xl font-bold text-green-600">
+              {stats?.farmers || 0}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Renters</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {stats?.renters || 0}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Pending Verifications</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {pendingEquipment.length}
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Equipment Verifications */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-4">Pending Equipment Verifications</h2>
+          
+          {pendingEquipment.length === 0 ? (
+            <p className="text-gray-600 text-center py-8">No pending verifications</p>
+          ) : (
+            <div className="space-y-4">
+              {pendingEquipment.map((item) => (
+                <div key={item._id} className="border rounded-lg p-4 flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold text-lg">{item.name}</h3>
+                    <p className="text-gray-600">{item.category}</p>
+                    <p className="text-sm text-gray-500">
+                      Owner: {item.renter?.name || 'N/A'}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {formatCurrency(item.pricing?.perHour || 0)}/hour
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleVerify(item._id, 'verified')}
+                      className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleVerify(item._id, 'rejected')}
+                      className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default AdminDashboard;

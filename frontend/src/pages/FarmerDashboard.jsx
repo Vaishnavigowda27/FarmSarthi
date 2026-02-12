@@ -1,216 +1,132 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import API from '../utils/mockAPI.js'; // Using mock API
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import api from '../services/api';
+import { formatCurrency, formatDate, showToast } from '../utils/helpers';
 
-export default function Register() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Details, 2: OTP, 3: Role
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    latitude: '',
-    longitude: '',
-    otp: '',
-    role: ''
-  });
-  const [loading, setLoading] = useState(false);
+const FarmerDashboard = () => {
+  const { t } = useTranslation();
+  const [stats, setStats] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const getLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData({
-            ...formData,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-          alert('Location captured!');
-        },
-        () => alert('Unable to get location')
-      );
-    }
-  };
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
-  const sendOTP = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const loadDashboard = async () => {
     try {
-      await API.post('/auth/send-otp', { phone: formData.phone });
-      alert('OTP Sent!');
-      setStep(2);
+      const response = await api.get('/users/farmer/dashboard');
+      setStats(response.data.stats);
+      setBookings(response.data.recentBookings || []);
     } catch (error) {
-      alert('Error sending OTP');
+      showToast('Failed to load dashboard', 'error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const verifyOTP = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await API.post('/auth/verify-otp', { phone: formData.phone, otp: formData.otp });
-      setStep(3);
-    } catch (error) {
-      alert('Invalid OTP');
-    }
-    setLoading(false);
-  };
-
-  const completeRegistration = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data } = await API.post('/auth/register', formData);
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      if (data.user.role === 'farmer') navigate('/farmer');
-      else navigate('/renter');
-    } catch (error) {
-      alert('Registration failed');
-    }
-    setLoading(false);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
-        
-        {/* Step Indicator */}
-        <div className="flex justify-between mb-6">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-green-600 text-white' : 'bg-gray-300'}`}>1</div>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-green-600 text-white' : 'bg-gray-300'}`}>2</div>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-green-600 text-white' : 'bg-gray-300'}`}>3</div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        <h1 className="text-4xl font-bold mb-8 gradient-primary bg-clip-text text-transparent">
+          {t('dashboard.farmer')}
+        </h1>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Total Bookings</div>
+            <div className="text-3xl font-bold text-primary">
+              {stats?.totalBookings || 0}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Completed</div>
+            <div className="text-3xl font-bold text-green-600">
+              {stats?.completedBookings || 0}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Upcoming</div>
+            <div className="text-3xl font-bold text-blue-600">
+              {stats?.upcomingBookings || 0}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 mb-2">Total Spent</div>
+            <div className="text-3xl font-bold text-secondary">
+              {formatCurrency(stats?.totalSpent || 0)}
+            </div>
+          </div>
         </div>
 
-        {/* Step 1: Basic Details */}
-        {step === 1 && (
-          <form onSubmit={sendOTP} className="space-y-4">
-            <div>
-              <label className="block text-gray-700 mb-2">Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <Link
+            to="/equipment"
+            className="bg-primary text-white px-8 py-4 rounded-lg font-semibold inline-block hover:bg-primary-dark"
+          >
+            {t('dashboard.searchEquipment')}
+          </Link>
+        </div>
+
+        {/* Recent Bookings */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-4">{t('dashboard.bookings')}</h2>
+          
+          {bookings.length === 0 ? (
+            <p className="text-gray-600 text-center py-8">No bookings yet</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Equipment</th>
+                    <th className="px-4 py-3 text-left">Date</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map((booking) => (
+                    <tr key={booking._id} className="border-b">
+                      <td className="px-4 py-3">{booking.equipment?.name || 'N/A'}</td>
+                      <td className="px-4 py-3">{formatDate(booking.bookingDate)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-3 py-1 rounded-full text-sm ${
+                          booking.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                          booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {booking.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-semibold">
+                        {formatCurrency(booking.pricing?.totalCost || 0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div>
-              <label className="block text-gray-700 mb-2">Phone Number</label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                placeholder="+91 1234567890"
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-gray-700 mb-2">Location</label>
-              <button
-                type="button"
-                onClick={getLocation}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-              >
-                {formData.latitude ? '✓ Location Captured' : 'Get My Location'}
-              </button>
-              {formData.latitude && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Lat: {formData.latitude.toFixed(4)}, Lng: {formData.longitude.toFixed(4)}
-                </p>
-              )}
-            </div>
-            <button
-              type="submit"
-              disabled={loading || !formData.latitude}
-              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-            >
-              {loading ? 'Sending...' : 'Send OTP'}
-            </button>
-          </form>
-        )}
-
-        {/* Step 2: OTP */}
-        {step === 2 && (
-          <form onSubmit={verifyOTP} className="space-y-4">
-            <div>
-              <label className="block text-gray-700 mb-2">Enter OTP</label>
-              <input
-                type="text"
-                value={formData.otp}
-                onChange={(e) => setFormData({...formData, otp: e.target.value})}
-                placeholder="123456"
-                maxLength="6"
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-            >
-              {loading ? 'Verifying...' : 'Verify OTP'}
-            </button>
-          </form>
-        )}
-
-        {/* Step 3: Role Selection */}
-        {step === 3 && (
-          <form onSubmit={completeRegistration} className="space-y-4">
-            <label className="block text-gray-700 mb-2">Select Role</label>
-            
-            <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
-              <input
-                type="radio"
-                name="role"
-                value="farmer"
-                checked={formData.role === 'farmer'}
-                onChange={(e) => setFormData({...formData, role: e.target.value})}
-                className="mr-3"
-                required
-              />
-              <div>
-                <p className="font-semibold">Farmer</p>
-                <p className="text-sm text-gray-500">I want to rent equipment</p>
-              </div>
-            </label>
-
-            <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
-              <input
-                type="radio"
-                name="role"
-                value="renter"
-                checked={formData.role === 'renter'}
-                onChange={(e) => setFormData({...formData, role: e.target.value})}
-                className="mr-3"
-                required
-              />
-              <div>
-                <p className="font-semibold">Equipment Renter</p>
-                <p className="text-sm text-gray-500">I have equipment to rent</p>
-              </div>
-            </label>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-            >
-              {loading ? 'Creating Account...' : 'Complete Registration'}
-            </button>
-          </form>
-        )}
-
-        <div className="mt-6 text-center">
-          <a href="/login" className="text-blue-600 hover:underline">
-            Already have account? Login
-          </a>
+          )}
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default FarmerDashboard;

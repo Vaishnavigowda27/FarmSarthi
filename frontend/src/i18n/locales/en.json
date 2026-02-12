@@ -1,0 +1,66 @@
+{
+  "app": {
+    "name": "FarmSaarthi"
+  },
+  "nav": {
+    "home": "Home",
+    "equipment": "Equipment",
+    "dashboard": "Dashboard",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout"
+  },
+  "home": {
+    "title": "Rent Farm Equipment Near You",
+    "subtitle": "Find tractors, harvesters, and more within 10km",
+    "getStarted": "Get Started",
+    "findEquipment": "Find Equipment"
+  },
+  "auth": {
+    "phone": "Phone Number",
+    "otp": "Enter OTP",
+    "sendOtp": "Send OTP",
+    "verify": "Verify",
+    "name": "Full Name",
+    "role": "I am a",
+    "farmer": "Farmer",
+    "renter": "Equipment Owner",
+    "address": "Address",
+    "getLocation": "Get My Location",
+    "register": "Register",
+    "login": "Login"
+  },
+  "equipment": {
+    "title": "Available Equipment",
+    "search": "Search Equipment",
+    "bookNow": "Book Now",
+    "addEquipment": "Add Equipment",
+    "perHour": "/hour",
+    "perKm": "/km",
+    "away": "away"
+  },
+  "dashboard": {
+    "farmer": "Farmer Dashboard",
+    "renter": "Renter Dashboard",
+    "admin": "Admin Dashboard",
+    "stats": "Statistics",
+    "bookings": "Bookings",
+    "myEquipment": "My Equipment",
+    "searchEquipment": "Search Equipment"
+  },
+  "booking": {
+    "selectDate": "Select Date",
+    "selectTime": "Select Time",
+    "location": "Pickup Location",
+    "confirm": "Confirm Booking",
+    "pay": "Pay Now"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next"
+  }
+}

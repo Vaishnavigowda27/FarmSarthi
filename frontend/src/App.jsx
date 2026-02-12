@@ -1,39 +1,45 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+
+// Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
-import useAuthStore from './context/authStore';
-
-// Placeholder components - to be created
-const Register = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-3xl">Register Page - To be implemented</h1></div>;
-const Equipment = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-3xl">Equipment Page - To be implemented</h1></div>;
-const FarmerDashboard = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-3xl">Farmer Dashboard - To be implemented</h1></div>;
-const RenterDashboard = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-3xl">Renter Dashboard - To be implemented</h1></div>;
-const AdminDashboard = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-3xl">Admin Dashboard - To be implemented</h1></div>;
-const Checkout = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-3xl">Checkout Page - To be implemented</h1></div>;
-const Payment = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-3xl">Payment Page - To be implemented</h1></div>;
+import Register from './pages/Register';
+import Equipment from './pages/Equipments';
+import FarmerDashboard from './pages/FarmerDashboard';
+import RenterDashboard from './pages/RenterDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import Checkout from './pages/Checkout';
+import Payment from './pages/Payment';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { user, loading } = useAuth();
 
-  if (!isAuthenticated) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return <Navigate to="/login" />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" />;
   }
 
   return children;
 };
 
-function App() {
+function AppContent() {
   return (
     <Router>
-      <div className="flex flex-col min-h-screen">
+      <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow">
           <Routes>
@@ -45,35 +51,13 @@ function App() {
 
             {/* Farmer Routes */}
             <Route
-              path="/farmer/dashboard"
+              path="/farmer"
               element={
                 <ProtectedRoute allowedRoles={['farmer']}>
                   <FarmerDashboard />
                 </ProtectedRoute>
               }
             />
-
-            {/* Renter Routes */}
-            <Route
-              path="/renter/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['renter']}>
-                  <RenterDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Admin Routes */}
-            <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Booking Routes */}
             <Route
               path="/checkout/:equipmentId"
               element={
@@ -91,37 +75,47 @@ function App() {
               }
             />
 
+            {/* Renter Routes */}
+            <Route
+              path="/renter"
+              element={
+                <ProtectedRoute allowedRoles={['renter']}>
+                  <RenterDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
-        <Footer />
+
+        {/* Footer */}
+        <footer className="bg-gray-900 text-white py-8 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <p>&copy; 2024 FarmSaarthi. All rights reserved.</p>
+          </div>
+        </footer>
       </div>
-      
-      {/* Toast Notifications */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#fff',
-            color: '#333',
-          },
-          success: {
-            iconTheme: {
-              primary: '#22c55e',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

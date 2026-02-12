@@ -1,220 +1,209 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import API from '../utils/mockAPI.js';
+import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
+import { getCurrentLocation, showToast } from '../utils/helpers';
 
-export default function Register() {
+const Register = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Details, 2: OTP, 3: Role
+  const { register, sendOTP } = useAuth();
+
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    latitude: '',
-    longitude: '',
     otp: '',
-    role: ''
+    role: 'farmer',
+    location: {
+      coordinates: [],
+      address: '',
+      city: 'Mysore',
+      state: 'Karnataka',
+      pincode: ''
+    }
   });
-  const [error, setError] = useState('');
 
-  const getLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData({
-            ...formData,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-          alert('✅ Location captured!');
-        },
-        () => alert('❌ Unable to get location')
-      );
-    } else {
-      alert('❌ Geolocation not supported');
-    }
-  };
-
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    setError('');
-    
+  const handleGetLocation = async () => {
     try {
-      await API.post('/auth/send-otp', { phone: formData.phone });
-      alert('OTP sent: 123456');
-      setStep(2);
-    } catch (err) {
-      setError('Failed to send OTP');
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError('');
-    
-    try {
-      await API.post('/auth/verify-otp', { phone: formData.phone, otp: formData.otp });
-      setStep(3);
-    } catch (err) {
-      setError('Invalid OTP. Use: 123456');
-    }
-  };
-
-  const handleRegister = async (role) => {
-    try {
-      const { data } = await API.post('/auth/register', {
-        name: formData.name,
-        phone: formData.phone,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
-        role: role
+      const coords = await getCurrentLocation();
+      setFormData({
+        ...formData,
+        location: {
+          ...formData.location,
+          coordinates: [coords.longitude, coords.latitude]
+        }
       });
+      showToast('Location captured!', 'success');
+    } catch (error) {
+      showToast('Failed to get location', 'error');
+    }
+  };
+
+  const handleSendOTP = async (e) => {
+    e.preventDefault();
+    if (formData.phone.length !== 10) {
+      showToast('Enter valid 10-digit phone number', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await sendOTP(formData.phone);
+      setStep(2);
+      showToast('OTP sent successfully!', 'success');
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Failed to send OTP', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (formData.otp.length !== 6) {
+      showToast('Enter valid 6-digit OTP', 'error');
+      return;
+    }
+
+    if (formData.location.coordinates.length === 0) {
+      showToast('Please get your location', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const user = await register(formData);
+      showToast('Registration successful!', 'success');
       
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
-      
-      window.location.href = '/' + role;
-      
-    } catch (err) {
-      setError('Registration failed');
+      if (user.role === 'farmer') navigate('/farmer');
+      else if (user.role === 'renter') navigate('/renter');
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Registration failed', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-green-600">Register</h2>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+       <h2 className="text-3xl font-bold mb-6 text-center">
+  <span className="bg-gradient-to-r from-emerald-500 to-blue-600 bg-clip-text text-transparent inline-block uppercase tracking-wide">
+    {t('auth.register')}
+  </span>
+</h2>
 
-        {/* Progress */}
-        <div className="flex justify-between mb-6">
-          <div className={`flex-1 text-center ${step >= 1 ? 'text-green-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 mx-auto rounded-full ${step >= 1 ? 'bg-green-600' : 'bg-gray-300'} text-white flex items-center justify-center font-bold`}>1</div>
-            <p className="text-xs mt-1">Details</p>
-          </div>
-          <div className={`flex-1 text-center ${step >= 2 ? 'text-green-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 mx-auto rounded-full ${step >= 2 ? 'bg-green-600' : 'bg-gray-300'} text-white flex items-center justify-center font-bold`}>2</div>
-            <p className="text-xs mt-1">Verify</p>
-          </div>
-          <div className={`flex-1 text-center ${step >= 3 ? 'text-green-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 mx-auto rounded-full ${step >= 3 ? 'bg-green-600' : 'bg-gray-300'} text-white flex items-center justify-center font-bold`}>3</div>
-            <p className="text-xs mt-1">Role</p>
-          </div>
-        </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* Step 1: Basic Details */}
-        {step === 1 && (
-          <form onSubmit={handleSendOtp} className="space-y-4">
-            <div>
-              <label className="block text-gray-700 mb-2 font-medium">Name</label>
+        {step === 1 ? (
+          <form onSubmit={handleSendOTP}>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">{t('auth.name')}</label>
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full px-4 py-2 border rounded-lg"
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
                 required
               />
             </div>
-            <div>
-              <label className="block text-gray-700 mb-2 font-medium">Phone Number</label>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">{t('auth.phone')}</label>
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                placeholder="+91 1234567890"
-                className="w-full px-4 py-2 border rounded-lg"
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
+                maxLength={10}
                 required
               />
             </div>
-            <div>
-              <label className="block text-gray-700 mb-2 font-medium">Location</label>
-              <button
-                type="button"
-                onClick={getLocation}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">{t('auth.role')}</label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
               >
-                {formData.latitude ? '✅ Location Captured' : '📍 Get My Location'}
-              </button>
-              {formData.latitude && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Lat: {formData.latitude.toFixed(4)}, Lng: {formData.longitude.toFixed(4)}
-                </p>
-              )}
+                <option value="farmer">{t('auth.farmer')}</option>
+                <option value="renter">{t('auth.renter')}</option>
+              </select>
             </div>
+
+            <button
+              type="button"
+              onClick={handleGetLocation}
+              className="w-full mb-4 border border-primary text-primary py-3 rounded-lg font-semibold hover:bg-primary/10"
+            >
+              {t('auth.getLocation')}
+            </button>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">{t('auth.address')}</label>
+              <input
+                type="text"
+                value={formData.location.address}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  location: { ...formData.location, address: e.target.value }
+                })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
+                required
+              />
+            </div>
+
             <button
               type="submit"
-              disabled={!formData.latitude}
-              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+              disabled={loading}
+              className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark disabled:bg-gray-400"
             >
-              Send OTP
+              {loading ? t('common.loading') : t('auth.sendOtp')}
             </button>
           </form>
-        )}
-
-        {/* Step 2: OTP */}
-        {step === 2 && (
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <div>
-              <label className="block text-gray-700 mb-2 font-medium">Enter OTP</label>
+        ) : (
+          <form onSubmit={handleRegister}>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">{t('auth.otp')}</label>
               <input
                 type="text"
                 value={formData.otp}
-                onChange={(e) => setFormData({...formData, otp: e.target.value})}
-                placeholder="123456"
-                maxLength="6"
-                className="w-full px-4 py-2 border rounded-lg"
+                onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
+                maxLength={6}
                 required
               />
-              <p className="text-sm text-gray-500 mt-2">Sent to {formData.phone}</p>
             </div>
-            <button
-              type="submit"
-              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
-            >
-              Verify OTP
-            </button>
+
+            <div className="flex space-x-4">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="w-1/2 border border-primary text-primary py-3 rounded-lg font-semibold hover:bg-primary/10"
+              >
+                {t('common.back')}
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-1/2 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark disabled:bg-gray-400"
+              >
+                {loading ? t('common.loading') : t('auth.register')}
+              </button>
+            </div>
           </form>
         )}
 
-        {/* Step 3: Role Selection */}
-        {step === 3 && (
-          <div className="space-y-3">
-            <p className="text-gray-700 mb-4 font-medium">Select your role:</p>
-            
-            <button
-              onClick={() => handleRegister('farmer')}
-              className="w-full p-4 border-2 border-gray-300 rounded-lg hover:border-green-600 hover:bg-green-50 text-left"
-            >
-              <p className="font-semibold text-lg">🌾 Farmer</p>
-              <p className="text-sm text-gray-600">I want to rent equipment for my farm</p>
-            </button>
-            
-            <button
-              onClick={() => handleRegister('renter')}
-              className="w-full p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 text-left"
-            >
-              <p className="font-semibold text-lg">🚜 Equipment Renter</p>
-              <p className="text-sm text-gray-600">I have equipment to rent out</p>
-            </button>
-          </div>
-        )}
-
         <div className="mt-6 text-center">
-          <p className="text-gray-600 text-sm">
-            Already have account?{' '}
-            <a href="/login" className="text-blue-600 hover:underline font-semibold">
-              Login
-            </a>
-          </p>
-        </div>
-
-        <div className="mt-4 p-3 bg-blue-50 rounded text-sm">
-          <p className="font-bold text-blue-900">Test OTP: <strong>123456</strong></p>
+          <Link to="/login" className="text-primary hover:underline">
+            Already have an account? Login
+          </Link>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default Register;
