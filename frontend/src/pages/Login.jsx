@@ -14,6 +14,18 @@ const Login = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // Handle phone input - only digits, max 10
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhone(value);
+  };
+
+  // Handle OTP input - only digits, max 6
+  const handleOTPChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setOTP(value);
+  };
+
   const handleSendOTP = async (e) => {
     e.preventDefault();
     if (phone.length !== 10) {
@@ -23,7 +35,8 @@ const Login = () => {
 
     setLoading(true);
     try {
-      await sendOTP(phone);
+      // ✅ FIXED: Send with +91 prefix
+      await sendOTP(`+91${phone}`);
       setStep(2);
       showToast('OTP sent successfully!', 'success');
     } catch (error) {
@@ -42,7 +55,8 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const user = await login(phone, otp);
+      // ✅ FIXED: Login with +91 prefix
+      const user = await login(`+91${phone}`, otp);
       showToast('Login successful!', 'success');
       
       if (user.role === 'farmer') navigate('/farmer');
@@ -59,25 +73,31 @@ const Login = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <h2 className="text-3xl font-bold mb-6 text-center">
-  <span className="bg-gradient-to-r from-emerald-500 to-blue-600 bg-clip-text text-transparent inline-block uppercase">
-    {t('auth.login')}
-  </span>
-</h2>
-
+          <span className="bg-gradient-to-r from-emerald-500 to-blue-600 bg-clip-text text-transparent inline-block uppercase">
+            {t('auth.login')}
+          </span>
+        </h2>
 
         {step === 1 ? (
           <form onSubmit={handleSendOTP}>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2">{t('auth.phone')}</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
-                placeholder="9876543210"
-                maxLength={10}
-                required
-              />
+              {/* ✅ FIXED: Added +91 prefix display */}
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-gray-700 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg font-semibold">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-r-lg focus:outline-none focus:border-primary"
+                  placeholder="9876543210"
+                  maxLength={10}
+                  required
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Enter 10-digit mobile number</p>
             </div>
 
             <button
@@ -90,17 +110,37 @@ const Login = () => {
           </form>
         ) : (
           <form onSubmit={handleLogin}>
+            {/* ✅ FIXED: Show phone with +91 prefix */}
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">Phone Number</label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-gray-700 bg-gray-100 border border-gray-300 rounded-l-lg font-semibold">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  value={phone}
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-r-lg bg-gray-100 text-gray-600"
+                />
+              </div>
+            </div>
+
             <div className="mb-4">
               <label className="block text-gray-700 mb-2">{t('auth.otp')}</label>
               <input
                 type="text"
                 value={otp}
-                onChange={(e) => setOTP(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
-                placeholder="123456"
+                onChange={handleOTPChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary text-center text-2xl tracking-widest"
+                placeholder="● ● ● ● ● ●"
                 maxLength={6}
                 required
+                autoFocus
               />
+              <p className="text-xs text-gray-500 mt-1 text-center">
+                💡 Dev mode: Check backend terminal for OTP
+              </p>
             </div>
 
             <div className="flex space-x-4">
