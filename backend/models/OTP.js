@@ -16,24 +16,27 @@ const otpSchema = new mongoose.Schema({
   },
   attempts: {
     type: Number,
-    default: 0
+    default: 0,
+    max: 3
   },
   expiresAt: {
     type: Date,
-    default: () => new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
-    index: { expires: 0 } // Auto-delete after expiry
+    required: true,
+    default: () => Date.now() + 10 * 60 * 1000, // 10 minutes
+    index: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    expires: 600 // Auto-delete after 10 minutes (600 seconds)
   }
 }, {
   timestamps: true
 });
 
-// Increment attempts before validation
-otpSchema.pre('save', function(next) {
-  if (!this.isNew && !this.verified) {
-    this.attempts += 1;
-  }
-  next();
-});
+// Indexes for faster queries
+otpSchema.index({ phone: 1, createdAt: -1 });
+otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const OTP = mongoose.model('OTP', otpSchema);
 

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import api from '../services/api';
-import { getCurrentLocation, formatCurrency, showToast } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
+import { showToast } from '../utils/helpers';
 
 const Checkout = () => {
   const { equipmentId } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { user } = useAuth();
 
   const [equipment, setEquipment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,10 +17,7 @@ const Checkout = () => {
     bookingDate: '',
     startTime: '09:00',
     endTime: '17:00',
-    pickupLocation: {
-      coordinates: [],
-      address: ''
-    }
+    distance: 5
   });
 
   const [pricing, setPricing] = useState({
@@ -28,12 +25,12 @@ const Checkout = () => {
     distanceCost: 0,
     totalCost: 0,
     advancePayment: 0,
-    remainingPayment: 0
+    remainingPayment: 0,
+    hours: 0
   });
 
   useEffect(() => {
     loadEquipment();
-    getLocation();
   }, [equipmentId]);
 
   useEffect(() => {
@@ -42,7 +39,7 @@ const Checkout = () => {
 
   const loadEquipment = async () => {
     try {
-      const response = await api.get(`/equipment/${equipmentId}`);
+      const response = await axios.get(`/api/equipment/${equipmentId}`);
       setEquipment(response.data.equipment);
     } catch (error) {
       showToast('Failed to load equipment', 'error');
@@ -52,34 +49,20 @@ const Checkout = () => {
     }
   };
 
-  const getLocation = async () => {
-    try {
-      const coords = await getCurrentLocation();
-      setFormData(prev => ({
-        ...prev,
-        pickupLocation: {
-          ...prev.pickupLocation,
-          coordinates: [coords.longitude, coords.latitude]
-        }
-      }));
-    } catch (error) {
-      console.error('Location error:', error);
-    }
-  };
-
   const calculatePricing = () => {
     if (!equipment) return;
 
     const hours = calculateHours();
-    const distance = 5; // Default 5km for demo
+    const distance = parseFloat(formData.distance) || 0;
     
-    const hoursCost = hours * (equipment.pricing?.perHour || 0);
-    const distanceCost = distance * (equipment.pricing?.perKm || 0);
+    const hoursCost = hours * (equipment.pricePerHour || 0);
+    const distanceCost = distance * (equipment.pricePerKm || 0);
     const totalCost = hoursCost + distanceCost;
-    const advancePayment = totalCost * 0.1;
+    const advancePayment = Math.round(totalCost * 0.1);
     const remainingPayment = totalCost - advancePayment;
 
     setPricing({
+      hours,
       hoursCost,
       distanceCost,
       totalCost,
@@ -102,27 +85,24 @@ const Checkout = () => {
       return;
     }
 
-    if (formData.pickupLocation.coordinates.length === 0) {
-      showToast('Please enter pickup location', 'error');
+    if (pricing.hours <= 0) {
+      showToast('End time must be after start time', 'error');
       return;
     }
 
     setSubmitting(true);
     try {
-      const response = await api.post('/bookings', {
-        equipment: equipmentId,
-        bookingDate: formData.bookingDate,
-        timeSlot: {
-          startTime: formData.startTime,
-          endTime: formData.endTime
-        },
-        pickupLocation: formData.pickupLocation
+      const response = await axios.post('/api/booking/create', {
+        equipmentId: equipmentId,
+        date: formData.bookingDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        distance: formData.distance
       });
 
-      const bookingId = response.data.booking._id;
+      const bookingId = response.data.bookingId;
       showToast('Booking created! Proceeding to payment...', 'success');
       
-      // Redirect to payment
       navigate(`/payment/${bookingId}`);
     } catch (error) {
       showToast(error.response?.data?.message || 'Booking failed', 'error');
@@ -133,136 +113,202 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
   if (!equipment) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Equipment not found</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-600">Equipment not found</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-4xl font-bold mb-8 gradient-primary bg-clip-text text-transparent">
-          {t('booking.confirm')}
-        </h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/equipment')}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-2xl font-bold text-gray-800">Confirm Booking</h1>
+          </div>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Equipment Details */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-4">Equipment Details</h2>
-            <div className="h-48 bg-gradient-secondary rounded-lg flex items-center justify-center mb-4">
-              <span className="text-white text-6xl">🚜</span>
-            </div>
-            <h3 className="font-bold text-xl mb-2">{equipment.name}</h3>
-            <p className="text-gray-600 mb-4">{equipment.description}</p>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Per Hour:</span>
-                <span className="font-semibold">{formatCurrency(equipment.pricing?.perHour || 0)}</span>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Equipment Details - Left Column */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-8">
+              <h2 className="text-lg font-bold mb-4 text-gray-800">Equipment Details</h2>
+              
+              <div className="h-40 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Per KM:</span>
-                <span className="font-semibold">{formatCurrency(equipment.pricing?.perKm || 0)}</span>
+
+              <h3 className="font-bold text-xl mb-2 text-gray-800">{equipment.name}</h3>
+              <p className="text-gray-600 text-sm mb-4">{equipment.description}</p>
+              
+              <div className="space-y-3 py-3 border-t border-gray-200">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 text-sm">Hourly Rate:</span>
+                  <span className="font-bold text-blue-600">₹{equipment.pricePerHour}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 text-sm">Per Kilometer:</span>
+                  <span className="font-bold text-green-600">₹{equipment.pricePerKm}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 text-sm">Owner:</span>
+                  <span className="font-medium text-gray-800">{equipment.renterId?.name || 'N/A'}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Booking Form */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-4">Booking Details</h2>
-            
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">{t('booking.selectDate')}</label>
-                <input
-                  type="date"
-                  value={formData.bookingDate}
-                  onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
-                  required
-                />
-              </div>
+          {/* Booking Form - Right Column */}
+          <div className="lg:col-span-2">
+            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-bold mb-6 text-gray-800">Booking Information</h2>
+              
+              <div className="space-y-5">
+                {/* Date Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.bookingDate}
+                    onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Start Time</label>
-                <input
-                  type="time"
-                  value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
-                  required
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">End Time</label>
-                <input
-                  type="time"
-                  value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
-                  required
-                />
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-gray-700 mb-2">{t('booking.location')}</label>
-                <input
-                  type="text"
-                  value={formData.pickupLocation.address}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    pickupLocation: { ...formData.pickupLocation, address: e.target.value }
-                  })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
-                  placeholder="Enter pickup address"
-                  required
-                />
-              </div>
-
-              {/* Pricing Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold mb-3">Pricing Summary</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Hours Cost ({calculateHours()}hrs):</span>
-                    <span>{formatCurrency(pricing.hoursCost)}</span>
+                {/* Time Selection */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Time <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Distance Cost (5km):</span>
-                    <span>{formatCurrency(pricing.distanceCost)}</span>
-                  </div>
-                  <div className="border-t pt-2 flex justify-between font-semibold">
-                    <span>Total:</span>
-                    <span className="text-primary">{formatCurrency(pricing.totalCost)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Advance Payment (10%):</span>
-                    <span className="font-semibold">{formatCurrency(pricing.advancePayment)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Remaining:</span>
-                    <span>{formatCurrency(pricing.remainingPayment)}</span>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Time <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
                   </div>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark disabled:bg-gray-400"
-              >
-                {submitting ? 'Processing...' : t('booking.pay')}
-              </button>
+                {/* Distance */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Distance (km) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.distance}
+                    onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
+                    min="1"
+                    step="0.1"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter distance in kilometers"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Approximate distance from equipment location to your farm</p>
+                </div>
+
+                {/* Pricing Summary */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Cost Breakdown
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700">Hours ({pricing.hours.toFixed(1)} hrs × ₹{equipment.pricePerHour}):</span>
+                      <span className="font-semibold text-gray-800">₹{pricing.hoursCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700">Distance ({formData.distance} km × ₹{equipment.pricePerKm}):</span>
+                      <span className="font-semibold text-gray-800">₹{pricing.distanceCost.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-blue-200 pt-3 flex justify-between">
+                      <span className="font-bold text-gray-800">Total Cost:</span>
+                      <span className="font-bold text-xl text-blue-600">₹{pricing.totalCost.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-green-700 font-medium">Advance Payment (10%):</span>
+                        <span className="font-bold text-green-600">₹{pricing.advancePayment}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Remaining (90%):</span>
+                        <span className="font-semibold text-gray-700">₹{pricing.remainingPayment.toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        *Remaining payment to be made after service completion
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={submitting || pricing.hours <= 0}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  {submitting ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    `Proceed to Payment - ₹${pricing.advancePayment}`
+                  )}
+                </button>
+
+                <p className="text-center text-xs text-gray-500">
+                  By proceeding, you agree to our terms and conditions
+                </p>
+              </div>
             </form>
           </div>
         </div>
