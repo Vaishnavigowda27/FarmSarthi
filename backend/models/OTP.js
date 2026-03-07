@@ -22,20 +22,18 @@ const otpSchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     required: true,
-    default: () => Date.now() + 10 * 60 * 1000, // 10 minutes
-    index: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    expires: 600 // Auto-delete after 10 minutes (600 seconds)
+    default: () => Date.now() + 10 * 60 * 1000 // 10 minutes
+    // ✅ REMOVED: index: true (was causing duplicate)
   }
+  // ✅ REMOVED: createdAt with expires (timestamps: true already adds createdAt)
 }, {
-  timestamps: true
+  timestamps: true // This adds createdAt and updatedAt automatically
 });
 
 // Indexes for faster queries
 otpSchema.index({ phone: 1, createdAt: -1 });
+
+// ✅ TTL Index: Auto-delete documents 10 minutes after expiresAt
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const OTP = mongoose.model('OTP', otpSchema);

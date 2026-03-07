@@ -6,33 +6,38 @@ import { showToast } from '../utils/helpers';
 
 const Equipment = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [radius, setRadius] = useState('10');
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
     }
+    if (user.role !== 'farmer') {
+      navigate('/');
+      return;
+    }
     loadEquipment();
-  }, [user, navigate]);
+  }, [user, navigate, radius]);
 
   const loadEquipment = async () => {
     try {
       setLoading(true);
-      
-      // Get user's location for proximity search
-      const userLat = user.location?.coordinates?.[1] || 12.2958;
-      const userLng = user.location?.coordinates?.[0] || 76.6394;
-      
-      const response = await axios.get('/api/equipment/search', {
+      const userLat = user?.location?.coordinates?.[1] || 12.2958;
+      const userLng = user?.location?.coordinates?.[0] || 76.6394;
+
+      const response = await axios.get('/api/equipment', {
         params: {
-          lat: userLat,
-          lng: userLng,
-          radius: 10
-        }
+          latitude: userLat,
+          longitude: userLng,
+          radius: radius,
+          isAvailable: true,
+        },
       });
 
       setEquipment(response.data.equipment || []);
@@ -44,161 +49,220 @@ const Equipment = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const filteredEquipment = equipment.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEquipment = equipment.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading equipment...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-farm-primary border-t-transparent mx-auto mb-3" />
+          <p className="text-sm text-gray-600">Loading equipment near you…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/farmer')}
-              className="text-gray-600 hover:text-gray-800"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-2xl font-bold text-gray-800">Browse Equipment</h1>
-          </div>
-          <div className="flex gap-4 items-center">
-            <span className="text-gray-700">{user?.name}</span>
-            <button 
-              onClick={handleLogout} 
-              className="text-gray-600 hover:text-gray-800"
-            >
-              Logout
-            </button>
+    <div className="space-y-6">
+      {/* Welcome + search + filter */}
+      <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+          <div className="flex-1">
+            <p className="text-xs text-gray-500 mb-1">
+              Welcome back, {user?.name}
+            </p>
+            <h1 className="text-xl font-bold text-gray-900 mb-3">
+              Find equipment near your farm
+            </h1>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Search equipment (Tractor, Harvester, Sprayer…)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 pl-11 pr-4 py-2.5 text-sm outline-none"
+                />
+                <svg
+                  className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={radius}
+                  onChange={(e) => setRadius(e.target.value)}
+                  className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium outline-none"
+                >
+                  <option value="5">Within 5 km</option>
+                  <option value="10">Within 10 km</option>
+                  <option value="25">Within 25 km</option>
+                  <option value="50">Within 50 km</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Search Bar */}
-        <div className="mb-8">
-          <div className="relative max-w-xl">
-            <input
-              type="text"
-              placeholder="Search equipment by name or type..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      {/* List + mini map */}
+      {filteredEquipment.length === 0 ? (
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
+          <svg
+            className="w-14 h-14 text-gray-300 mx-auto mb-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
-            <svg className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Showing equipment within 10km of your location
+          </svg>
+          <p className="text-sm font-semibold text-gray-800">
+            No equipment found nearby
           </p>
-        </div>
-
-        {/* Equipment Grid */}
-        {filteredEquipment.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-gray-600 text-xl font-medium">No equipment found</p>
-            <p className="text-gray-500 mt-2">Try adjusting your search or check back later</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <p className="text-xs text-gray-500 mt-1">
+            Try increasing the distance filter or adjusting your search.
+          </p>
+        </section>
+      ) : (
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Equipment list */}
+          <div className="lg:col-span-2 space-y-3">
             {filteredEquipment.map((item) => (
-              <div key={item._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200">
-                {/* Equipment Image Placeholder */}
-                <div className="h-48 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <svg className="w-24 h-24 text-white opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
+              <div
+                key={item._id}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col sm:flex-row"
+              >
+                <div
+                  className={`sm:w-56 h-40 sm:h-32 bg-farm-primary/15 flex items-center justify-center overflow-hidden ${
+                    item.photos?.[0]?.url ? 'cursor-pointer' : ''
+                  }`}
+                  onClick={() => {
+                    if (item.photos?.[0]?.url) {
+                      const baseUrl = (
+                        import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+                      ).replace(/\/api$/, '');
+                      setSelectedImage(`${baseUrl}${item.photos[0].url}`);
+                    }
+                  }}
+                >
+                  {item.photos?.[0]?.url ? (
+                    <img
+                      src={`${
+                        (import.meta.env.VITE_API_URL ||
+                          'http://localhost:5000/api'
+                        ).replace(/\/api$/, '')}${item.photos[0].url}`}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-4xl">🚜</span>
+                  )}
                 </div>
-
-                <div className="p-5">
-                  {/* Title & Description */}
-                  <h3 className="font-bold text-lg mb-2 text-gray-800">{item.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
-                  
-                  {/* Distance Badge */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="flex items-center text-gray-600 text-sm bg-gray-100 px-3 py-1 rounded-full">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {item.distance?.toFixed(1) || '0.0'} km away
+                <div className="flex-1 p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+                        {item.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
+                        {item.description}
+                      </p>
                     </div>
-                    
-                    {item.averageRating > 0 && (
-                      <div className="flex items-center text-sm bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full">
-                        <svg className="w-4 h-4 mr-1 fill-current" viewBox="0 0 20 20">
-                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                        </svg>
-                        {item.averageRating.toFixed(1)}
-                      </div>
-                    )}
+                    <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                      {(item.distance ?? 0).toFixed(1)} km
+                    </span>
                   </div>
 
-                  {/* Pricing */}
-                  <div className="space-y-2 mb-4 bg-gray-50 p-3 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Hourly Rate:</span>
-                      <span className="font-bold text-blue-600">₹{item.pricePerHour}/hr</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs mt-1">
+                    <div className="space-x-3">
+                      <span className="font-semibold text-farm-primary">
+                        ₹{item.pricing?.perHour ?? item.pricePerHour ?? 0}/hr
+                      </span>
+                      <span className="text-gray-500">
+                        ₹{item.pricing?.perKm ?? item.pricePerKm ?? 0}/km
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Per Kilometer:</span>
-                      <span className="font-bold text-green-600">₹{item.pricePerKm}/km</span>
-                    </div>
-                  </div>
-
-                  {/* Availability Status */}
-                  <div className="mb-4">
                     {item.isActive ? (
-                      <span className="inline-flex items-center text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                        Available
+                      <span className="inline-flex items-center text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        ● Available
                       </span>
                     ) : (
-                      <span className="inline-flex items-center text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
-                        <span className="w-2 h-2 bg-gray-500 rounded-full mr-1"></span>
-                        Not Available
+                      <span className="inline-flex items-center text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                        ○ Not available
                       </span>
                     )}
                   </div>
 
-                  {/* Book Button */}
-                  <button
-                    onClick={() => navigate(`/checkout/${item._id}`)}
-                    disabled={!item.isActive}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200"
-                  >
-                    {item.isActive ? 'Book Now' : 'Currently Unavailable'}
-                  </button>
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      onClick={() => navigate(`/checkout/${item._id}`)}
+                      disabled={!item.isActive}
+                      className="px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold bg-farm-primary text-white disabled:bg-gray-300"
+                    >
+                      {item.isActive ? 'Book Now (10% Advance)' : 'Unavailable'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </div>
+
+          {/* Mini map card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col">
+            <h2 className="text-sm font-bold text-gray-900 mb-1">
+              Map View
+            </h2>
+            <p className="text-[11px] text-gray-500 mb-3">
+              Visual preview of equipment locations (placeholder).
+            </p>
+            <div className="flex-1 rounded-2xl border border-dashed border-farm-light bg-[#E9F5EE] flex items-center justify-center text-[11px] text-gray-600">
+              Mini map placeholder
+            </div>
+          </div>
+        </section>
+      )}
+
+      {selectedImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] bg-black rounded-lg overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={selectedImage}
+              alt="Equipment"
+              className="w-full h-full object-contain"
+            />
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-3 right-3 bg-black/60 text-white rounded-full px-3 py-1 text-sm font-semibold hover:bg-black/80"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

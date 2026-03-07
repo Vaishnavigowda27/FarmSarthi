@@ -39,6 +39,19 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
+// Middleware: only parse multipart when Content-Type is multipart/form-data
+export const optionalUpload = (req, res, next) => {
+  if (req.headers['content-type']?.includes('multipart/form-data')) {
+    upload.array('images', 5)(req, res, (err) => {
+      if (err) return next(err);
+      next();
+    });
+  } else {
+    req.files = [];
+    next();
+  }
+};
+
 // Export different upload configurations
 export const uploadSingle = upload.single('image');
 export const uploadMultiple = upload.array('images', 5); // Max 5 images

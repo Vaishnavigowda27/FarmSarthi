@@ -30,21 +30,24 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       
-      // Fetch admin data
-      const [usersRes, equipmentsRes] = await Promise.all([
+      // Fetch admin dashboard (includes stats) and users/equipments
+      const [dashboardRes, usersRes, equipmentsRes] = await Promise.all([
+        axios.get('/api/admin/dashboard'),
         axios.get('/api/admin/users'),
         axios.get('/api/admin/equipments')
       ]);
       
+      const dash = dashboardRes.data.dashboard;
       setAllUsers(usersRes.data.users || []);
       setAllEquipments(equipmentsRes.data.equipments || []);
       
-      // Calculate stats
+      // Calculate stats from dashboard
+      const stat = dash?.statistics || {};
       setStats({
-        users: usersRes.data.users?.length || 0,
-        equipments: equipmentsRes.data.equipments?.length || 0,
-        bookings: 0, // You can fetch this separately
-        conflicts: 0 // You can fetch this separately
+        users: stat.users?.total ?? usersRes.data.users?.length ?? 0,
+        equipments: stat.equipment?.total ?? equipmentsRes.data.equipments?.length ?? 0,
+        bookings: stat.bookings?.total ?? 0,
+        conflicts: stat.bookings?.disputed ?? 0
       });
       
     } catch (error) {
@@ -61,8 +64,8 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">Loading...</div>
+      <div className="flex items-center justify-center py-16">
+        <div className="text-sm text-gray-500">Loading admin dashboard…</div>
       </div>
     );
   }
@@ -71,162 +74,138 @@ export default function AdminDashboard() {
     return null;
   }
 
+  const platformRevenue = (stats.bookings || 0) * 1000; // placeholder calc
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-            <p className="text-purple-100 text-sm mt-1">Manage platform operations</p>
-          </div>
-          <div className="flex gap-4 items-center">
-            <span className="text-white font-medium">👤 {user?.name || 'Admin'}</span>
-            <button 
-              onClick={handleLogout} 
-              className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-all"
-            >
-              Logout
-            </button>
-          </div>
+    <div className="space-y-6">
+      {/* Top row: title + quick stats */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+            Admin & Support Dashboard
+          </h1>
+          <p className="text-xs text-gray-500">
+            Monitor revenue, users, disputes and verification queue.
+          </p>
         </div>
+        <button
+          onClick={handleLogout}
+          className="text-xs font-semibold px-3 py-2 rounded-2xl bg-gray-900 text-white"
+        >
+          Logout
+        </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Total Users</h3>
-                <p className="text-3xl font-bold text-blue-600">{stats.users}</p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Total Equipment</h3>
-                <p className="text-3xl font-bold text-green-600">{stats.equipments}</p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Total Bookings</h3>
-                <p className="text-3xl font-bold text-purple-600">{stats.bookings}</p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Conflicts</h3>
-                <p className="text-3xl font-bold text-red-600">{stats.conflicts}</p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
+      {/* Platform revenue cards */}
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Platform Revenue</p>
+          <p className="text-2xl font-bold text-farm-primary">
+            ₹{platformRevenue.toLocaleString('en-IN')}
+          </p>
+          <p className="text-[11px] text-gray-500 mt-1">
+            Total gross revenue across all bookings.
+          </p>
         </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Total Users</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {stats.users.toLocaleString('en-IN')}
+          </p>
+          <p className="text-[11px] text-gray-500 mt-1">Farmers & Owners.</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Total Equipment</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {stats.equipments.toLocaleString('en-IN')}
+          </p>
+          <p className="text-[11px] text-gray-500 mt-1">Listed on the platform.</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Open Disputes</p>
+          <p className="text-2xl font-bold text-red-600">
+            {stats.conflicts.toLocaleString('en-IN')}
+          </p>
+          <p className="text-[11px] text-gray-500 mt-1">
+            Awaiting manual resolution.
+          </p>
+        </div>
+      </section>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">All Users</h2>
+      {/* Verification queue + disputes/system health */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Verification queue table */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900">
+              Verification Queue
+            </h2>
+            <span className="text-xs px-3 py-1 rounded-full bg-farm-light/20 text-farm-primary font-semibold">
+              {allEquipments.length} equipment
+            </span>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-600">
+                    User / Equipment
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-600">
+                    Uploaded Docs
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-600">
+                    Status
+                  </th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-600">
+                    Action
+                  </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {allUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                      No users found
-                    </td>
-                  </tr>
-                ) : (
-                  allUsers.map(u => (
-                    <tr key={u._id || u.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">{u.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-500">{u.phone}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          u.role === 'farmer' ? 'bg-blue-100 text-blue-700' : 
-                          u.role === 'renter' ? 'bg-green-100 text-green-700' : 
-                          'bg-purple-100 text-purple-700'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {u.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Equipment Table */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">All Equipment</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/Hour</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-100">
                 {allEquipments.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                      No equipment listed yet
+                    <td
+                      colSpan={4}
+                      className="px-3 py-4 text-center text-gray-500"
+                    >
+                      No equipment pending verification.
                     </td>
                   </tr>
                 ) : (
-                  allEquipments.map(eq => (
+                  allEquipments.map((eq) => (
                     <tr key={eq._id || eq.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">{eq.name}</div>
+                      <td className="px-3 py-2">
+                        <p className="font-semibold text-gray-900">
+                          {eq.name}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          Owner: {eq.owner?.name || 'N/A'}
+                        </p>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-500">{eq.renterId?.name || 'N/A'}</div>
+                      <td className="px-3 py-2 text-[11px] text-gray-600">
+                        Aadhaar, RC Book, PAN
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">₹{eq.pricePerHour}/hr</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          eq.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {eq.isActive ? 'Active' : 'Inactive'}
+                      <td className="px-3 py-2">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                            eq.verificationStatus === 'verified'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : eq.verificationStatus === 'rejected'
+                              ? 'bg-red-50 text-red-700'
+                              : 'bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {eq.verificationStatus || 'pending'}
                         </span>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button className="mr-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-farm-primary text-white">
+                          Approve
+                        </button>
+                        <button className="px-2 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-700">
+                          Reject
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -235,7 +214,49 @@ export default function AdminDashboard() {
             </table>
           </div>
         </div>
-      </div>
+
+        {/* Disputes & system health */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-2">
+              Dispute Center
+            </h3>
+            <p className="text-[11px] text-gray-600 mb-2">
+              Track and resolve payment or service disputes raised by users.
+            </p>
+            <div className="space-y-2 text-[11px]">
+              {[1, 2].map((id) => (
+                <div
+                  key={id}
+                  className="rounded-2xl border border-gray-100 bg-amber-50 p-2"
+                >
+                  <p className="font-semibold text-amber-900">
+                    Dispute #{id} • Payment Issue
+                  </p>
+                  <p className="text-amber-800">
+                    Farmer claims over‑billing. Awaiting evidence.
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-2">
+              System Health
+            </h3>
+            <p className="text-[11px] text-gray-600 mb-1">
+              Server status: <span className="font-semibold text-emerald-700">Operational</span>
+            </p>
+            <p className="text-[11px] text-gray-600 mb-1">
+              API uptime: <span className="font-semibold">99.8%</span>
+            </p>
+            <p className="text-[11px] text-gray-600">
+              No critical alerts in the last 24 hours.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

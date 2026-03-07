@@ -309,3 +309,45 @@ export const getAnalytics = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Get all users
+ * @route   GET /api/admin/users
+ * @access  Private (Admin only)
+ */
+export const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find()
+      .select('name phone role isActive createdAt')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get all equipment
+ * @route   GET /api/admin/equipments
+ * @access  Private (Admin only)
+ */
+export const getAllEquipments = async (req, res, next) => {
+  try {
+    const equipments = await Equipment.find()
+      .populate('owner', 'name phone')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: equipments.length,
+      equipments,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

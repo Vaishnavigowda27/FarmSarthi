@@ -107,19 +107,22 @@ export const register = async (req, res, next) => {
 
     console.log('✅ OTP verified, creating user...');
 
+    // Default location (frontend doesn't collect location during registration)
+    const userLocation = {
+      type: 'Point',
+      coordinates: [76.6394, 12.2958],
+      address: 'Mysore, Karnataka',
+      city: 'Mysore',
+      state: 'Karnataka',
+      pincode: '570001'
+    };
+
     // Create user
     const user = await User.create({
       name,
       phone,
       role,
-      location: location || {
-        type: 'Point',
-        coordinates: [76.6394, 12.2958], // Default to Mysore
-        address: 'Mysore, Karnataka',
-        city: 'Mysore',
-        state: 'Karnataka',
-        pincode: '570001'
-      },
+      location: userLocation,
       isVerified: true,
       isActive: true
     });

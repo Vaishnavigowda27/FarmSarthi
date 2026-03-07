@@ -6,11 +6,16 @@ import { showToast } from '../utils/helpers';
 
 export default function FarmerDashboard() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [myBookings, setMyBookings] = useState([]);
-  const [stats, setStats] = useState({ total: 0, upcoming: 0, completed: 0, totalSpent: 0 });
+  const [stats, setStats] = useState({
+    total: 0,
+    upcoming: 0,
+    completed: 0,
+    totalSpent: 0,
+  });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all'); // all, upcoming, completed, cancelled
+  const [activeTab, setActiveTab] = useState('all');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
@@ -20,32 +25,32 @@ export default function FarmerDashboard() {
       navigate('/login');
       return;
     }
-    
     if (user.role !== 'farmer') {
       navigate('/');
       return;
     }
-    
     fetchMyBookings();
   }, [user, navigate]);
 
   const fetchMyBookings = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/booking/farmer');
+      const response = await axios.get('/api/bookings');
       const bookings = response.data.bookings || [];
       setMyBookings(bookings);
-      
-      // Calculate stats
+
       const total = bookings.length;
-      const upcoming = bookings.filter(b => b.status === 'confirmed' || b.status === 'hold').length;
-      const completed = bookings.filter(b => b.status === 'completed').length;
+      const upcoming = bookings.filter(
+        (b) => b.status === 'confirmed' || b.status === 'hold',
+      ).length;
+      const completed = bookings.filter(
+        (b) => b.status === 'completed',
+      ).length;
       const totalSpent = bookings
-        .filter(b => b.status === 'completed')
-        .reduce((sum, b) => sum + (b.totalCost || 0), 0);
-      
+        .filter((b) => b.status === 'completed')
+        .reduce((sum, b) => sum + (b.totalCost || b.pricing?.totalCost || 0), 0);
+
       setStats({ total, upcoming, completed, totalSpent });
-      
     } catch (error) {
       console.error('Error fetching bookings:', error);
       showToast('Failed to load bookings', 'error');
@@ -55,12 +60,15 @@ export default function FarmerDashboard() {
   };
 
   const handleCancelBooking = async (bookingId) => {
-    if (!confirm('Are you sure you want to cancel this booking? Advance payment is non-refundable.')) {
+    if (
+      !confirm(
+        'Are you sure you want to cancel this booking? Advance payment is non-refundable.',
+      )
+    ) {
       return;
     }
-    
     try {
-      await axios.put(`/api/booking/cancel/${bookingId}`);
+      await axios.put(`/api/bookings/${bookingId}/cancel`);
       showToast('Booking cancelled successfully', 'success');
       fetchMyBookings();
     } catch (error) {
@@ -79,14 +87,12 @@ export default function FarmerDashboard() {
       showToast('Please write a review', 'error');
       return;
     }
-    
     try {
-      await axios.post('/api/review/create', {
+      await axios.post('/api/reviews', {
         bookingId: selectedBooking._id,
         rating: reviewData.rating,
-        comment: reviewData.comment
+        comment: reviewData.comment,
       });
-      
       showToast('Review submitted successfully!', 'success');
       setShowReviewModal(false);
       setReviewData({ rating: 5, comment: '' });
@@ -97,19 +103,16 @@ export default function FarmerDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   const filterBookings = () => {
     switch (activeTab) {
       case 'upcoming':
-        return myBookings.filter(b => b.status === 'confirmed' || b.status === 'hold');
+        return myBookings.filter(
+          (b) => b.status === 'confirmed' || b.status === 'hold',
+        );
       case 'completed':
-        return myBookings.filter(b => b.status === 'completed');
+        return myBookings.filter((b) => b.status === 'completed');
       case 'cancelled':
-        return myBookings.filter(b => b.status === 'cancelled');
+        return myBookings.filter((b) => b.status === 'cancelled');
       default:
         return myBookings;
     }
@@ -117,313 +120,279 @@ export default function FarmerDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">Loading...</div>
+      <div className="flex items-center justify-center py-16">
+        <div className="text-sm text-gray-500">Loading your bookings…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Farmer Dashboard</h1>
-            <p className="text-blue-100 text-sm mt-1">Manage your equipment rentals</p>
-          </div>
-          <div className="flex gap-4 items-center">
-            <span className="text-white font-medium"> {user?.name}</span>
-            <button 
-              onClick={handleLogout} 
-              className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-all"
-            >
-              Logout
-            </button>
+    <div className="space-y-6">
+      {/* Top stats */}
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Total Bookings</p>
+          <p className="text-2xl font-bold text-[#1B4332]">{stats.total}</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Upcoming</p>
+          <p className="text-2xl font-bold text-[#2D6A4F]">{stats.upcoming}</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Completed</p>
+          <p className="text-2xl font-bold text-[#2D6A4F]">{stats.completed}</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Total Spent</p>
+          <p className="text-2xl font-bold text-[#1B4332]">
+            ₹{stats.totalSpent.toLocaleString('en-IN')}
+          </p>
+        </div>
+      </section>
+
+      {/* Search CTA */}
+      <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-[#1B4332]">
+            Need equipment for your next job?
+          </p>
+          <p className="text-xs text-gray-600">
+            Search nearby tractors, harvesters, and more.
+          </p>
+        </div>
+        <Link
+          to="/equipment"
+          className="px-5 py-2.5 rounded-full bg-[#2D6A4F] text-white text-xs font-semibold min-h-[40px] flex items-center justify-center"
+        >
+          Search Equipment
+        </Link>
+      </section>
+
+      {/* Bookings list */}
+      <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm sm:text-base font-bold text-[#1B4332]">
+            My Bookings
+          </h2>
+          <div className="flex border border-gray-200 rounded-full overflow-hidden text-[11px]">
+            {['all', 'upcoming', 'completed', 'cancelled'].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 py-1.5 ${
+                  activeTab === tab
+                    ? 'bg-[#2D6A4F] text-white'
+                    : 'text-gray-600'
+                }`}
+              >
+                {tab[0].toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Total Bookings</h3>
-                <p className="text-3xl font-bold text-blue-600">{stats.total}</p>
-              </div>
-              <div className="text-4xl"></div>
+        <div className="space-y-3 text-xs sm:text-sm">
+          {filterBookings().length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-sm font-semibold text-gray-600">
+                No bookings found.
+              </p>
+              <Link
+                to="/equipment"
+                className="mt-2 inline-block text-[#2D6A4F] font-semibold hover:underline"
+              >
+                Browse equipment →
+              </Link>
             </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Upcoming</h3>
-                <p className="text-3xl font-bold text-orange-600">{stats.upcoming}</p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Completed</h3>
-                <p className="text-3xl font-bold text-green-600">{stats.completed}</p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Total Spent</h3>
-                <p className="text-3xl font-bold text-purple-600">₹{stats.totalSpent}</p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Search Equipment Button */}
-        <div className="mb-8">
-          <Link
-            to="/equipment"
-            className="inline-block bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg"
-          >
-             Search for Equipment
-          </Link>
-        </div>
-
-        {/* Bookings Section */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">My Bookings</h2>
-
-          {/* Tabs */}
-          <div className="flex border-b mb-6">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'all'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              All ({myBookings.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('upcoming')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'upcoming'
-                  ? 'border-b-2 border-orange-600 text-orange-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Upcoming ({stats.upcoming})
-            </button>
-            <button
-              onClick={() => setActiveTab('completed')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'completed'
-                  ? 'border-b-2 border-green-600 text-green-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Completed ({stats.completed})
-            </button>
-            <button
-              onClick={() => setActiveTab('cancelled')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'cancelled'
-                  ? 'border-b-2 border-red-600 text-red-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Cancelled
-            </button>
-          </div>
-
-          {/* Bookings List */}
-          <div className="space-y-4">
-            {filterBookings().length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">📭</div>
-                <p className="text-gray-500 text-lg">No bookings found</p>
-                <Link
-                  to="/equipment"
-                  className="inline-block mt-4 text-blue-600 hover:underline"
-                >
-                  Browse equipment →
-                </Link>
-              </div>
-            ) : (
-              filterBookings().map(booking => (
-                <div key={booking._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start">
-                    {/* Left Side - Equipment Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="text-4xl"></div>
-                        <div>
-                          <h3 className="font-bold text-xl text-gray-800">
-                            {booking.equipmentId?.name || 'Equipment'}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            Owner: {booking.renterId?.name || 'N/A'} • {booking.renterId?.phone}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600"> Date:</span>
-                          <span className="ml-2 font-medium">
-                            {new Date(booking.bookingDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600"> Time:</span>
-                          <span className="ml-2 font-medium">
-                            {booking.startTime} - {booking.endTime}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Duration:</span>
-                          <span className="ml-2 font-medium">{booking.hours} hours</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600"> Distance:</span>
-                          <span className="ml-2 font-medium">{booking.distance} km</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Payment:</span>
-                          <div className="text-right">
-                            <div className="text-sm text-gray-600">
-                              Advance Paid: <span className="font-semibold text-green-600">₹{booking.advancePaid}</span>
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              Remaining: <span className="font-semibold text-orange-600">₹{booking.remainingAmount}</span>
-                            </div>
-                            <div className="text-lg font-bold text-gray-800 mt-1">
-                              Total: ₹{booking.totalCost}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Side - Status & Actions */}
-                    <div className="ml-6 text-right">
-                      <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold mb-4 ${
-                        booking.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
-                        booking.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        booking.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                        booking.status === 'hold' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {booking.status === 'hold' ? ' On Hold' :
-                         booking.status === 'confirmed' ? ' Confirmed' :
-                         booking.status === 'completed' ? ' Completed' :
-                         booking.status === 'cancelled' ? ' Cancelled' :
-                         booking.status}
+          ) : (
+            filterBookings().map((booking) => (
+              <div
+                key={booking._id}
+                className="border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              >
+                <div className="flex-1 space-y-1">
+                  <p className="font-semibold text-[#1B4332]">
+                    {booking.equipment?.name ||
+                      booking.equipmentId?.name ||
+                      'Equipment'}
+                  </p>
+                  <p className="text-[11px] text-gray-600">
+                    Owner: {booking.renter?.name || booking.renterId?.name || 'N/A'} •{' '}
+                    {booking.renter?.phone || booking.renterId?.phone || ''}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-600">
+                    <span>
+                      Date:{' '}
+                      <span className="font-medium">
+                        {new Date(booking.bookingDate).toLocaleDateString()}
                       </span>
-
-                      <div className="space-y-2">
-                        {booking.status === 'confirmed' && (
-                          <button
-                            onClick={() => handleCancelBooking(booking._id)}
-                            className="block w-full bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
-                          >
-                            Cancel Booking
-                          </button>
-                        )}
-
-                        {booking.status === 'completed' && !booking.hasReview && (
-                          <button
-                            onClick={() => openReviewModal(booking)}
-                            className="block w-full bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors"
-                          >
-                             Write Review
-                          </button>
-                        )}
-
-                        {booking.status === 'completed' && booking.hasReview && (
-                          <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium">
-                            ✓ Reviewed
-                          </div>
-                        )}
-                      </div>
+                    </span>
+                    <span>
+                      Time:{' '}
+                      <span className="font-medium">
+                        {booking.timeSlot?.startTime || booking.startTime} -{' '}
+                        {booking.timeSlot?.endTime || booking.endTime}
+                      </span>
+                    </span>
+                    <span>
+                      Duration:{' '}
+                      <span className="font-medium">
+                        {booking.timeSlot?.duration ?? booking.hours ?? 0} hrs
+                      </span>
+                    </span>
+                    <span>
+                      Distance:{' '}
+                      <span className="font-medium">{booking.distance} km</span>
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
+                    <span className="text-[11px] text-gray-600">Payment</span>
+                    <div className="text-right text-[11px]">
+                      <p className="text-gray-700">
+                        Advance:{' '}
+                        <span className="font-semibold text-[#2D6A4F]">
+                          ₹
+                          {(
+                            booking.pricing?.advancePayment ??
+                            booking.advancePaid ??
+                            0
+                          ).toLocaleString('en-IN')}
+                        </span>
+                      </p>
+                      <p className="text-gray-700">
+                        Remaining:{' '}
+                        <span className="font-semibold text-[#1B4332]">
+                          ₹
+                          {(
+                            booking.pricing?.remainingPayment ??
+                            booking.remainingAmount ??
+                            0
+                          ).toLocaleString('en-IN')}
+                        </span>
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Review Modal */}
-      {showReviewModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <h3 className="text-2xl font-bold mb-4 text-gray-800">Write a Review</h3>
-            
-            <div className="mb-4">
-              <p className="text-gray-700 font-medium mb-2">
-                {selectedBooking?.equipmentId?.name}
-              </p>
-              <p className="text-sm text-gray-600">
-                Owner: {selectedBooking?.renterId?.name}
-              </p>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Rating</label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    onClick={() => setReviewData({ ...reviewData, rating: star })}
-                    className={`text-4xl ${
-                      star <= reviewData.rating ? 'text-yellow-400' : 'text-gray-300'
+                {/* Status & actions */}
+                <div className="sm:ml-4 text-right space-y-2">
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-[11px] font-semibold ${
+                      booking.status === 'confirmed'
+                        ? 'bg-[#74C69D]/20 text-[#1B4332]'
+                        : booking.status === 'completed'
+                        ? 'bg-[#2D6A4F]/10 text-[#1B4332]'
+                        : booking.status === 'cancelled'
+                        ? 'bg-red-50 text-red-600'
+                        : 'bg-gray-100 text-gray-700'
                     }`}
                   >
-                    
+                    {booking.status}
+                  </span>
+
+                  {booking.status === 'confirmed' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCancelBooking(booking._id)}
+                      className="block w-full rounded-full border border-red-200 text-red-600 text-[11px] font-semibold px-3 py-1"
+                    >
+                      Cancel Booking
+                    </button>
+                  )}
+
+                  {booking.status === 'completed' && !booking.hasReview && (
+                    <button
+                      type="button"
+                      onClick={() => openReviewModal(booking)}
+                      className="block w-full rounded-full bg-[#74C69D]/20 text-[#1B4332] text-[11px] font-semibold px-3 py-1"
+                    >
+                      Write Review
+                    </button>
+                  )}
+
+                  {booking.status === 'completed' && booking.hasReview && (
+                    <div className="text-[11px] font-semibold text-[#2D6A4F]">
+                      ✓ Reviewed
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Review modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-base font-bold text-[#1B4332]">
+              Write a Review
+            </h3>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">
+                {selectedBooking?.equipment?.name ||
+                  selectedBooking?.equipmentId?.name}
+              </p>
+              <p className="text-[11px] text-gray-600">
+                Owner:{' '}
+                {selectedBooking?.renter?.name ||
+                  selectedBooking?.renterId?.name}
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Rating
+              </label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() =>
+                      setReviewData({ ...reviewData, rating: star })
+                    }
+                    className={`text-2xl ${
+                      star <= reviewData.rating
+                        ? 'text-[#74C69D]'
+                        : 'text-gray-300'
+                    }`}
+                  >
+                    ★
                   </button>
                 ))}
               </div>
             </div>
-
-            <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Your Review</label>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Your Review
+              </label>
               <textarea
                 value={reviewData.comment}
-                onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows="4"
-                placeholder="Share your experience with this equipment..."
+                onChange={(e) =>
+                  setReviewData({ ...reviewData, comment: e.target.value })
+                }
+                rows={4}
+                className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                placeholder="Share your experience with this equipment…"
               />
             </div>
-
-            <div className="flex gap-3">
+            <div className="flex gap-2 pt-1">
               <button
+                type="button"
                 onClick={() => {
                   setShowReviewModal(false);
                   setReviewData({ rating: 5, comment: '' });
                 }}
-                className="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50"
+                className="flex-1 rounded-2xl border border-gray-200 text-xs font-semibold text-gray-700 py-2"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSubmitReview}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700"
+                className="flex-1 rounded-2xl bg-[#2D6A4F] text-white text-xs font-semibold py-2"
               >
                 Submit Review
               </button>
@@ -434,3 +403,4 @@ export default function FarmerDashboard() {
     </div>
   );
 }
+

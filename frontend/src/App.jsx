@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Navbar from './components/Navbar';
+import SharedLayout from './layouts/SharedLayout';
 
 // Pages
 import Home from './pages/Home';
@@ -39,74 +39,54 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function AppContent() {
   return (
     <Router>
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/equipment" element={<Equipment />} />
+      <Routes>
+        {/* Public Routes (no sidebar) */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-            {/* Farmer Routes */}
-            <Route
-              path="/farmer"
-              element={
-                <ProtectedRoute allowedRoles={['farmer']}>
-                  <FarmerDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/checkout/:equipmentId"
-              element={
-                <ProtectedRoute allowedRoles={['farmer']}>
-                  <Checkout />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment/:bookingId"
-              element={
-                <ProtectedRoute allowedRoles={['farmer']}>
-                  <Payment />
-                </ProtectedRoute>
-              }
-            />
+        {/* Farmer + Renter + Admin routes inside shared layout */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={['farmer', 'renter', 'admin']}>
+              <SharedLayout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Farmer */}
+          <Route
+            path="/farmer"
+            element={<FarmerDashboard />}
+          />
+          <Route
+            path="/equipment"
+            element={<Equipment />}
+          />
+          <Route
+            path="/checkout/:equipmentId"
+            element={<Checkout />}
+          />
+          <Route
+            path="/payment/:bookingId"
+            element={<Payment />}
+          />
 
-            {/* Renter Routes */}
-            <Route
-              path="/renter"
-              element={
-                <ProtectedRoute allowedRoles={['renter']}>
-                  <RenterDashboard />
-                </ProtectedRoute>
-              }
-            />
+          {/* Renter */}
+          <Route
+            path="/renter"
+            element={<RenterDashboard />}
+          />
 
-            {/* Admin Routes */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
+          {/* Admin */}
+          <Route
+            path="/admin"
+            element={<AdminDashboard />}
+          />
+        </Route>
 
-            {/* 404 */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-
-        {/* Footer */}
-        <footer className="bg-gray-900 text-white py-8 mt-auto">
-          <div className="max-w-7xl mx-auto px-4 text-center">
-            <p>&copy; 2026 FarmSaarthi. All rights reserved.</p>
-          </div>
-        </footer>
-      </div>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
     </Router>
   );
 }

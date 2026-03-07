@@ -11,12 +11,16 @@ export default function RenterDashboard() {
   const [bookings, setBookings] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [newEquipment, setNewEquipment] = useState({
     name: '',
     description: '',
+    category: 'Tractor',
+    brand: '',
+    model: '',
     pricePerHour: '',
     pricePerKm: '',
-    photos: []
+    imageFiles: [],
   });
 
   useEffect(() => {
@@ -24,19 +28,19 @@ export default function RenterDashboard() {
       navigate('/login');
       return;
     }
-    
     if (user.role !== 'renter') {
       navigate('/');
       return;
     }
-    
     fetchMyEquipments();
     fetchBookings();
   }, [user, navigate]);
 
   const fetchMyEquipments = async () => {
     try {
-      const response = await axios.get(`/api/equipment/renter/${user.id}`);
+      const response = await axios.get('/api/equipment', {
+        params: { owner: user.id },
+      });
       setMyEquipments(response.data.equipment || []);
     } catch (error) {
       console.error('Error fetching equipment:', error);
@@ -48,7 +52,7 @@ export default function RenterDashboard() {
 
   const fetchBookings = async () => {
     try {
-      const response = await axios.get('/api/booking/renter');
+      const response = await axios.get('/api/bookings');
       setBookings(response.data.bookings || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -57,256 +61,449 @@ export default function RenterDashboard() {
 
   const handleAddEquipment = async (e) => {
     e.preventDefault();
-    
     try {
       setLoading(true);
-      
-      const equipmentData = {
-        ...newEquipment,
-        pricePerHour: parseFloat(newEquipment.pricePerHour),
-        pricePerKm: parseFloat(newEquipment.pricePerKm),
-        location: user.location // Use renter's location
+
+      const perHour = parseFloat(newEquipment.pricePerHour) || 0;
+      const perKm = parseFloat(newEquipment.pricePerKm) || 0;
+      const locationData = {
+        type: 'Point',
+        coordinates: user?.location?.coordinates || [76.6394, 12.2958],
+        address: user?.location?.address || 'Mysore, Karnataka',
       };
-      
-      await axios.post('/api/equipment/create', equipmentData);
-      
-      showToast('Equipment added successfully!', 'success');
+
+      let response;
+      if (newEquipment.imageFiles?.length > 0) {
+        const formData = new FormData();
+        formData.append('name', newEquipment.name);
+        formData.append('description', newEquipment.description);
+        formData.append('category', newEquipment.category);
+        formData.append('pricing', JSON.stringify({ perHour, perKm }));
+        formData.append('location', JSON.stringify(locationData));
+        formData.append(
+          'specifications',
+          JSON.stringify({
+            brand: newEquipment.brand || 'N/A',
+            model: newEquipment.model || 'N/A',
+          }),
+        );
+        newEquipment.imageFiles.forEach((file) =>
+          formData.append('images', file),
+        );
+        response = await axios.post('/api/equipment', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      } else {
+        response = await axios.post('/api/equipment', {
+          name: newEquipment.name,
+          description: newEquipment.description,
+          category: newEquipment.category,
+          specifications: {
+            brand: newEquipment.brand || 'N/A',
+            model: newEquipment.model || 'N/A',
+          },
+          pricing: { perHour, perKm },
+          location: locationData,
+        });
+      }
+
+      console.log('Equipment added:', response.data);
+      showToast('Equipment added successfully! Pending admin approval.', 'success');
       setShowAddForm(false);
       fetchMyEquipments();
-      
-      // Reset form
       setNewEquipment({
         name: '',
         description: '',
+        category: 'Tractor',
+        brand: '',
+        model: '',
         pricePerHour: '',
         pricePerKm: '',
-        photos: []
+        imageFiles: [],
       });
-      
     } catch (error) {
       console.error('Error adding equipment:', error);
-      showToast(error.response?.data?.message || 'Failed to add equipment', 'error');
+      console.error('Error response:', error.response?.data);
+      showToast(
+        error.response?.data?.message || 'Failed to add equipment',
+        'error',
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">Loading...</div>
+      <div className="flex items-center justify-center py-16">
+        <div className="text-sm text-gray-500">Loading dashboard...</div>
       </div>
     );
   }
 
+  const totalRevenue = bookings
+    .filter((b) => b.status === 'completed')
+    .reduce((sum, b) => sum + (b.totalCost || 0), 0);
+
+  const pendingPayments = bookings
+    .filter((b) => b.status === 'confirmed')
+    .reduce((sum, b) => sum + (b.pricing?.remainingPayment || 0), 0);
+
+  const activeRents = bookings.filter((b) => b.status === 'confirmed').length;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Renter Dashboard</h1>
-            <p className="text-green-100 text-sm mt-1">Manage your equipment & bookings</p>
+    <div className="space-y-6">
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Total Revenue</p>
+          <p className="text-2xl font-bold text-farm-primary">
+            ₹{totalRevenue.toLocaleString('en-IN')}
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Pending Payments</p>
+          <p className="text-2xl font-bold text-amber-600">
+            ₹{pendingPayments.toLocaleString('en-IN')}
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Active Rents</p>
+          <p className="text-2xl font-bold text-emerald-600">{activeRents}</p>
+        </div>
+      </div>
+
+      {/* Booking requests + equipment column */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">Booking Requests</h2>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-farm-light/20 text-farm-primary">
+              {bookings.filter((b) => b.status === 'pending').length} pending
+            </span>
           </div>
-          <div className="flex gap-4 items-center">
-            <span className="text-white font-medium"> {user?.name}</span>
-            <button 
-              onClick={handleLogout} 
-              className="bg-white text-green-600 px-4 py-2 rounded-lg font-semibold hover:bg-green-50 transition-all"
+          <div className="space-y-3 text-sm">
+            {bookings.filter((b) => b.status === 'pending').length === 0 ? (
+              <p className="text-xs text-gray-500">
+                No new booking requests at the moment.
+              </p>
+            ) : (
+              bookings
+                .filter((b) => b.status === 'pending')
+                .map((booking) => (
+                  <div
+                    key={booking._id}
+                    className="rounded-2xl border border-gray-100 bg-gray-50 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                  >
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {booking.equipment?.name || 'Equipment'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Farmer: {booking.farmer?.name || 'N/A'} •{' '}
+                        {new Date(booking.bookingDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1.5 rounded-2xl text-xs font-semibold bg-emerald-600 text-white">
+                        Accept
+                      </button>
+                      <button className="px-3 py-1.5 rounded-2xl text-xs font-semibold bg-red-100 text-red-700">
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {showAddForm ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-900">
+                  Add New Equipment
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="text-xs font-semibold text-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+              <form onSubmit={handleAddEquipment} className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Equipment Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newEquipment.name}
+                      onChange={(e) =>
+                        setNewEquipment({ ...newEquipment, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-2xl border border-gray-300 text-sm outline-none"
+                      placeholder="John Deere Tractor"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={newEquipment.category}
+                      onChange={(e) =>
+                        setNewEquipment({
+                          ...newEquipment,
+                          category: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-2xl border border-gray-300 text-sm outline-none"
+                      required
+                    >
+                      <option value="Tractor">Tractor</option>
+                      <option value="Harvester">Harvester</option>
+                      <option value="Plough">Plough</option>
+                      <option value="Seeder">Seeder</option>
+                      <option value="Sprayer">Sprayer</option>
+                      <option value="Thresher">Thresher</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <input
+                      type="text"
+                      value={newEquipment.description}
+                      onChange={(e) =>
+                        setNewEquipment({
+                          ...newEquipment,
+                          description: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-2xl border border-gray-300 text-sm outline-none"
+                      placeholder="Short description"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Price / Hour (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={newEquipment.pricePerHour}
+                        onChange={(e) =>
+                          setNewEquipment({
+                            ...newEquipment,
+                            pricePerHour: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 rounded-2xl border border-gray-300 text-sm outline-none"
+                        min="0"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Price / KM (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={newEquipment.pricePerKm}
+                        onChange={(e) =>
+                          setNewEquipment({
+                            ...newEquipment,
+                            pricePerKm: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 rounded-2xl border border-gray-300 text-sm outline-none"
+                        min="0"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Photos
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) =>
+                        setNewEquipment({
+                          ...newEquipment,
+                          imageFiles: Array.from(e.target.files || []),
+                        })
+                      }
+                      className="w-full text-xs"
+                    />
+                    {newEquipment.imageFiles?.length > 0 && (
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        {newEquipment.imageFiles.length} image(s) selected
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-farm-primary text-white px-4 py-2.5 rounded-2xl text-sm font-semibold disabled:bg-gray-400"
+                >
+                  {loading ? 'Adding...' : 'Publish Equipment'}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-900">
+                  My Equipment
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(true)}
+                  className="px-3 py-1.5 rounded-2xl text-xs font-semibold bg-farm-primary text-white"
+                >
+                  + Add New
+                </button>
+              </div>
+              <div className="space-y-3">
+                {myEquipments.length === 0 ? (
+                  <p className="text-xs text-gray-500">
+                    No equipment added yet.
+                  </p>
+                ) : (
+                  myEquipments.map((eq) => (
+                    <div
+                      key={eq._id}
+                      className="border border-gray-100 rounded-2xl overflow-hidden flex"
+                    >
+                      <div
+                        className={`h-20 w-24 bg-farm-primary/20 flex-shrink-0 flex items-center justify-center overflow-hidden ${
+                          eq.photos?.[0]?.url ? 'cursor-pointer' : ''
+                        }`}
+                        onClick={() => {
+                          if (eq.photos?.[0]?.url) {
+                            const baseUrl = (
+                              import.meta.env.VITE_API_URL ||
+                              'http://localhost:5000/api'
+                            ).replace(/\/api$/, '');
+                            setSelectedImage(`${baseUrl}${eq.photos[0].url}`);
+                          }
+                        }}
+                      >
+                        {eq.photos?.[0]?.url ? (
+                          <img
+                            src={`${
+                              (import.meta.env.VITE_API_URL ||
+                                'http://localhost:5000/api'
+                              ).replace(/\/api$/, '')}${eq.photos[0].url}`}
+                            alt={eq.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-2xl">🚜</span>
+                        )}
+                      </div>
+                      <div className="flex-1 p-3 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-semibold text-sm text-gray-900">
+                            {eq.name}
+                          </p>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold">
+                            {eq.category}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 line-clamp-2">
+                          {eq.description}
+                        </p>
+                        <p className="text-[11px] text-gray-600 font-medium">
+                          ₹{eq.pricing?.perHour || 0}/hr • ₹
+                          {eq.pricing?.perKm || 0}/km
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Current bookings */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h2 className="text-lg font-bold mb-4 text-gray-900">
+          Current Bookings
+        </h2>
+        <div className="space-y-3 text-sm">
+          {bookings.length === 0 ? (
+            <p className="text-xs text-gray-500">No bookings yet.</p>
+          ) : (
+            bookings.map((booking) => (
+              <div
+                key={booking._id}
+                className="border border-gray-100 rounded-2xl p-3 flex items-center justify-between gap-3"
+              >
+                <div>
+                  <p className="font-semibold text-gray-900">
+                    {booking.equipment?.name || 'Equipment'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Farmer: {booking.farmer?.name || 'N/A'} •{' '}
+                    {new Date(booking.bookingDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="text-right text-xs">
+                  <p className="font-semibold text-farm-primary">
+                    ₹{(booking.pricing?.totalCost || 0).toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-gray-500">
+                    Advance: ₹
+                    {(booking.pricing?.advancePayment || 0).toLocaleString(
+                      'en-IN',
+                    )}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {selectedImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] bg-black rounded-lg overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={selectedImage}
+              alt="Equipment"
+              className="w-full h-full object-contain"
+            />
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-3 right-3 bg-black/60 text-white rounded-full px-3 py-1 text-sm font-semibold hover:bg-black/80"
             >
-              Logout
+              Close
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">My Equipment</h3>
-                <p className="text-3xl font-bold text-green-600">{myEquipments.length}</p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Active Rentals</h3>
-                <p className="text-3xl font-bold text-blue-600">
-                  {bookings.filter(b => b.status === 'confirmed').length}
-                </p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-2">Total Earnings</h3>
-                <p className="text-3xl font-bold text-green-600">
-                  ₹{bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.totalCost || 0), 0)}
-                </p>
-              </div>
-              <div className="text-4xl"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Add Equipment Button */}
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="mb-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg"
-        >
-          {showAddForm ? '✕ Cancel' : '+ Add New Equipment'}
-        </button>
-
-        {/* Add Equipment Form */}
-        {showAddForm && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Add New Equipment</h2>
-            <form onSubmit={handleAddEquipment} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Equipment Name *</label>
-                  <input
-                    type="text"
-                    value={newEquipment.name}
-                    onChange={(e) => setNewEquipment({...newEquipment, name: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="e.g., John Deere Tractor"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Description *</label>
-                  <input
-                    type="text"
-                    value={newEquipment.description}
-                    onChange={(e) => setNewEquipment({...newEquipment, description: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="Brief description"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Price per Hour (₹) *</label>
-                  <input
-                    type="number"
-                    value={newEquipment.pricePerHour}
-                    onChange={(e) => setNewEquipment({...newEquipment, pricePerHour: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="500"
-                    min="0"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Price per KM (₹) *</label>
-                  <input
-                    type="number"
-                    value={newEquipment.pricePerKm}
-                    onChange={(e) => setNewEquipment({...newEquipment, pricePerKm: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="50"
-                    min="0"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-600 disabled:bg-gray-400 transition-all shadow-md"
-              >
-                {loading ? 'Adding...' : '✓ Add Equipment'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* My Equipment List */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">My Equipment</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {myEquipments.length === 0 ? (
-              <p className="text-gray-500 col-span-full text-center py-8">No equipment added yet. Add your first equipment above!</p>
-            ) : (
-              myEquipments.map(eq => (
-                <div key={eq._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <h3 className="font-semibold text-lg text-gray-800">{eq.name}</h3>
-                  <p className="text-gray-600 text-sm mt-1">{eq.description}</p>
-                  <div className="mt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Per Hour:</span>
-                      <span className="font-semibold text-green-600">₹{eq.pricePerHour}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Per KM:</span>
-                      <span className="font-semibold text-green-600">₹{eq.pricePerKm}</span>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <span className={`text-xs px-2 py-1 rounded-full ${eq.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {eq.isActive ? '✓ Active' : 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Current Bookings */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">Current Bookings</h2>
-          <div className="space-y-3">
-            {bookings.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No bookings yet</p>
-            ) : (
-              bookings.map(booking => (
-                <div key={booking._id} className="border border-gray-200 rounded-lg p-4 flex justify-between items-center hover:shadow-md transition-shadow">
-                  <div>
-                    <h3 className="font-semibold text-gray-800">{booking.equipmentId?.name || 'Equipment'}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Farmer: {booking.farmerId?.name || 'N/A'} • {booking.farmerId?.phone}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                       {new Date(booking.bookingDate).toLocaleDateString()} •  {booking.startTime} - {booking.endTime}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                      booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                      booking.status === 'pending' || booking.status === 'hold' ? 'bg-yellow-100 text-yellow-700' :
-                      booking.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {booking.status}
-                    </span>
-                    <p className="mt-2 font-bold text-green-600">₹{booking.totalCost}</p>
-                    <p className="text-xs text-gray-500">Advance: ₹{booking.advancePaid}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
+

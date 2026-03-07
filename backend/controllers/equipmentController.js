@@ -10,22 +10,34 @@ import { sendProximityNotification } from '../utils/notificationService.js';
  */
 export const addEquipment = async (req, res, next) => {
   try {
-    const {
-      name,
-      description,
-      category,
-      pricing,
-      location,
-      specifications,
-    } = req.body;
+    let { name, description, category, pricing, location, specifications } = req.body;
+
+    // Parse if sent as JSON strings (from FormData)
+    if (typeof pricing === 'string') pricing = JSON.parse(pricing);
+    if (typeof location === 'string') location = JSON.parse(location);
+    if (typeof specifications === 'string' && specifications) specifications = JSON.parse(specifications);
 
     // Validate required fields
-    if (!name || !description || !category || !pricing || !location) {
+    if (!name || !description || !category) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields',
+        message: 'Please provide name, description, and category',
       });
     }
+
+    // Validate and parse pricing
+    const perHour = parseFloat(pricing?.perHour ?? pricing?.per_hour ?? 0);
+    const perKm = parseFloat(pricing?.perKm ?? pricing?.per_km ?? 0);
+    if (isNaN(perHour) || perHour < 0 || isNaN(perKm) || perKm < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide valid pricing (perHour and perKm must be numbers ≥ 0)',
+      });
+    }
+
+    // Validate location / use default
+    const coords = location?.coordinates || [76.6394, 12.2958];
+    const address = location?.address || 'Mysore, Karnataka';
 
     // Handle photos if uploaded
     const photos = [];
@@ -38,6 +50,15 @@ export const addEquipment = async (req, res, next) => {
       });
     }
 
+    // Map specifications (brand -> make for schema compatibility)
+    const specs = specifications ? {
+      make: specifications.brand || specifications.make,
+      model: specifications.model,
+      year: specifications.year,
+      horsepower: specifications.horsepower,
+      capacity: specifications.capacity,
+    } : {};
+
     // Create equipment
     const equipment = await Equipment.create({
       owner: req.user.id,
@@ -46,17 +67,21 @@ export const addEquipment = async (req, res, next) => {
       category,
       photos,
       pricing: {
-        perHour: pricing.perHour,
-        perKm: pricing.perKm,
+        perHour,
+        perKm,
       },
       location: {
         type: 'Point',
-        coordinates: location.coordinates, // [longitude, latitude]
-        address: location.address,
-        city: location.city,
-        state: location.state,
+        coordinates: coords,
+        address,
+        city: location?.city,
+        state: location?.state,
       },
-      specifications,
+      specifications: specs,
+      availability: {
+        isAvailable: true,
+        schedule: [],
+      },
     });
 
     // Add equipment to user's listed equipment
@@ -64,20 +89,19 @@ export const addEquipment = async (req, res, next) => {
       $push: { equipmentListed: equipment._id },
     });
 
-    // Notify nearby farmers (within 10km)
-    const farmers = await User.find({
-      role: 'farmer',
-      isActive: true,
-    });
-
-    const nearbyFarmers = findNearbyEquipment(
-      { coordinates: location.coordinates },
-      farmers.map((f) => ({ location: f.location, _id: f._id })),
-      parseInt(process.env.PROXIMITY_RADIUS_KM) || 10
-    );
-
-    if (nearbyFarmers.length > 0) {
-      await sendProximityNotification(equipment, nearbyFarmers);
+    // Notify nearby farmers (within 10km) - don't fail add if notification fails
+    try {
+      const farmers = await User.find({ role: 'farmer', isActive: true });
+      const nearbyFarmers = findNearbyEquipment(
+        { coordinates: coords },
+        farmers.map((f) => ({ location: f.location, _id: f._id })),
+        parseInt(process.env.PROXIMITY_RADIUS_KM) || 10
+      );
+      if (nearbyFarmers.length > 0) {
+        await sendProximityNotification(equipment, nearbyFarmers);
+      }
+    } catch (notifErr) {
+      console.warn('Proximity notification skipped:', notifErr.message);
     }
 
     res.status(201).json({
@@ -105,11 +129,17 @@ export const getAllEquipment = async (req, res, next) => {
       minPrice,
       maxPrice,
       isAvailable,
+      owner,
       page = 1,
       limit = 10,
     } = req.query;
 
     let query = { isActive: true };
+
+    // Filter by owner (for renter's equipment)
+    if (owner) {
+      query.owner = owner;
+    }
 
     // Filter by category
     if (category) {
