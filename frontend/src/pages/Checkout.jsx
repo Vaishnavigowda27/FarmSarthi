@@ -4,6 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { showToast } from '../utils/helpers';
 
+// Generate 24hr time options (00:00 to 24:00)
+const TIME_OPTIONS = Array.from({ length: 25 }, (_, i) =>
+  i < 24 ? `${String(i).padStart(2, '0')}:00` : '24:00'
+);
+
 const Checkout = () => {
   const { equipmentId } = useParams();
   const navigate = useNavigate();
@@ -13,11 +18,12 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState({ slots: [], availableRanges: [] });
 
   const [formData, setFormData] = useState({
     bookingDate: '',
-    startTime: '09:00',
-    endTime: '17:00',
+    startTime: '06:00',
+    endTime: '10:00',
     distance: 5,
   });
 
@@ -37,6 +43,28 @@ const Checkout = () => {
   useEffect(() => {
     calculatePricing();
   }, [formData, equipment]);
+
+  // Fetch available slots when date is selected
+  useEffect(() => {
+    if (!equipmentId || !formData.bookingDate) {
+      setAvailableSlots({ slots: [], availableRanges: [] });
+      return;
+    }
+    const fetchAvailability = async () => {
+      try {
+        const res = await axios.get(`/api/equipment/${equipmentId}/availability`, {
+          params: { date: formData.bookingDate },
+        });
+        setAvailableSlots({
+          slots: res.data.slots || [],
+          availableRanges: res.data.availableRanges || [],
+        });
+      } catch {
+        setAvailableSlots({ slots: [], availableRanges: [] });
+      }
+    };
+    fetchAvailability();
+  }, [equipmentId, formData.bookingDate]);
 
   const loadEquipment = async () => {
     try {
@@ -285,33 +313,44 @@ const Checkout = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-gray-700 mb-1">
-                    Start Time
+                    Start Time (24hr)
                   </label>
-                  <input
-                    type="time"
+                  <select
                     value={formData.startTime}
                     onChange={(e) =>
                       setFormData({ ...formData, startTime: e.target.value })
                     }
                     className="w-full rounded-2xl border border-gray-300 px-3 py-2 outline-none text-sm"
                     required
-                  />
+                  >
+                    {TIME_OPTIONS.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block font-medium text-gray-700 mb-1">
-                    End Time
+                    End Time (24hr)
                   </label>
-                  <input
-                    type="time"
+                  <select
                     value={formData.endTime}
                     onChange={(e) =>
                       setFormData({ ...formData, endTime: e.target.value })
                     }
                     className="w-full rounded-2xl border border-gray-300 px-3 py-2 outline-none text-sm"
                     required
-                  />
+                  >
+                    {TIME_OPTIONS.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
+              {formData.bookingDate && availableSlots.availableRanges?.length > 0 && (
+                <p className="text-[11px] text-gray-600">
+                  Available: {availableSlots.availableRanges.map((r) => `${r.startTime}-${r.endTime}`).join(', ')}
+                </p>
+              )}
               <div>
                 <label className="block font-medium text-gray-700 mb-1">
                   Distance from equipment to your farm (km)

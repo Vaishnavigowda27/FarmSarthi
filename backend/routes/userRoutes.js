@@ -1,22 +1,32 @@
 import express from 'express';
 import {
-  sendOTPController,
-  resendOTPController,
-  register,
-  login,
-  getMe,
-} from '../controllers/authController.js';
-import { protect } from '../middleware/auth.js';
+  getUserProfile,
+  updateUserProfile,
+  getFarmerDashboard,
+  getRenterDashboard,
+  getAllUsers,
+  toggleUserStatus,
+  registerFcmToken,
+  unregisterFcmToken,
+} from '../controllers/userController.js';
+import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Public routes
-router.post('/send-otp', sendOTPController);
-router.post('/resend-otp', resendOTPController);
-router.post('/register', register);
-router.post('/login', login);
+// All user routes require auth
+router.use(protect);
 
-// Protected routes
-router.get('/me', protect, getMe);
+router.get('/profile', getUserProfile);
+router.put('/profile', updateUserProfile);
+
+router.get('/farmer/dashboard', authorize('farmer'), getFarmerDashboard);
+router.get('/renter/dashboard', authorize('renter'), getRenterDashboard);
+
+router.post('/fcm-token', registerFcmToken);
+router.delete('/fcm-token', unregisterFcmToken);
+
+// Admin-only user management
+router.get('/', authorize('admin'), getAllUsers);
+router.put('/:id/toggle-status', authorize('admin'), toggleUserStatus);
 
 export default router;

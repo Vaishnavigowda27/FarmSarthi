@@ -1,77 +1,26 @@
 import User from '../models/User.js';
 import { generateToken } from '../utils/jwt.js';
-import { createAndSendOTP, verifyOTP, resendOTP as resendOTPService } from '../utils/twilioService.js';
-
-// Send OTP
-export const sendOTPController = async (req, res, next) => {
-  try {
-    let { phone } = req.body;
-
-    // Remove +91 if present, keep only 10 digits
-    phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
-
-    // Validate phone number (10 digits)
-    if (!/^\d{10}$/.test(phone)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please enter a valid 10-digit phone number'
-      });
-    }
-
-    console.log('📞 Sending OTP to:', phone);
-
-    // Use twilioService to create and send OTP
-    const result = await createAndSendOTP(phone);
-
-    console.log('✅ OTP result:', result);
-
-    res.status(200).json(result);
-
-  } catch (error) {
-    console.error('❌ Send OTP Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to send OTP'
-    });
-  }
-};
-
-// Resend OTP
-export const resendOTPController = async (req, res, next) => {
-  try {
-    let { phone } = req.body;
-
-    // Remove +91 if present
-    phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
-
-    console.log('🔄 Resending OTP to:', phone);
-
-    // Use twilioService
-    const result = await resendOTPService(phone);
-
-    res.status(200).json(result);
-
-  } catch (error) {
-    console.error('❌ Resend OTP Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to resend OTP'
-    });
-  }
-};
+import { normalizeTo10DigitPhone, verifyFirebaseIdToken } from '../utils/firebaseAuth.js';
 
 // Register
 export const register = async (req, res, next) => {
   try {
-    let { name, phone, otp, role, location } = req.body;
+    const { name, role, location, idToken } = req.body;
 
-    // Remove +91 if present
-    phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
+    const decoded = await verifyFirebaseIdToken(idToken);
+    const tokenPhone10 = normalizeTo10DigitPhone(decoded.phone_number);
 
-    console.log('📝 Registration attempt:', { name, phone, role });
+    if (!tokenPhone10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to read phone number from Firebase token',
+      });
+    }
+
+    console.log('📝 Registration attempt:', { name, phone: tokenPhone10, role });
 
     // Validate
-    if (!name || !phone || !otp || !role) {
+    if (!name || !role) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields'
@@ -87,25 +36,13 @@ export const register = async (req, res, next) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ phone });
+    const existingUser = await User.findOne({ phone: tokenPhone10 });
     if (existingUser) {
       return res.status(400).json({
         success: false,
         message: 'User with this phone number already exists'
       });
     }
-
-    console.log('🔐 Verifying OTP...');
-
-    // Verify OTP using twilioService
-    const otpResult = await verifyOTP(phone, otp);
-    
-    if (!otpResult.success) {
-      console.log('❌ OTP verification failed');
-      return res.status(400).json(otpResult);
-    }
-
-    console.log('✅ OTP verified, creating user...');
 
     // Default location (frontend doesn't collect location during registration)
     const userLocation = {
@@ -120,9 +57,16 @@ export const register = async (req, res, next) => {
     // Create user
     const user = await User.create({
       name,
-      phone,
+      phone: tokenPhone10,
       role,
-      location: userLocation,
+      location: location?.coordinates?.length ? {
+        type: 'Point',
+        coordinates: location.coordinates,
+        address: location.address || userLocation.address,
+        city: location.city || userLocation.city,
+        state: location.state || userLocation.state,
+        pincode: location.pincode || userLocation.pincode,
+      } : userLocation,
       isVerified: true,
       isActive: true
     });
@@ -157,41 +101,36 @@ export const register = async (req, res, next) => {
 // Login
 export const login = async (req, res, next) => {
   try {
-    let { phone, otp } = req.body;
+    const { idToken } = req.body;
 
-    // Remove +91 if present
-    phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
+    const decoded = await verifyFirebaseIdToken(idToken);
+    const tokenPhone10 = normalizeTo10DigitPhone(decoded.phone_number);
 
-    console.log('🔑 Login attempt for:', phone);
-
-    // Validate
-    if (!phone || !otp) {
+    if (!tokenPhone10) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide phone number and OTP'
+        message: 'Unable to read phone number from Firebase token',
+      });
+    }
+
+    console.log('🔑 Login attempt for:', tokenPhone10);
+
+    // Validate
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide Firebase ID token'
       });
     }
 
     // Find user
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({ phone: tokenPhone10 });
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found. Please register first.'
       });
     }
-
-    console.log('🔐 Verifying OTP...');
-
-    // Verify OTP using twilioService
-    const otpResult = await verifyOTP(phone, otp);
-    
-    if (!otpResult.success) {
-      console.log('❌ OTP verification failed');
-      return res.status(400).json(otpResult);
-    }
-
-    console.log('✅ OTP verified');
 
     // Check if user is active
     if (!user.isActive) {

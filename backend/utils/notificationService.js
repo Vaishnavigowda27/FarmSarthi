@@ -1,5 +1,5 @@
 import Notification from '../models/Notification.js';
-import { sendOTP } from './twilioService.js';
+import { sendFcmToUser } from './fcmService.js';
 
 /**
  * Create a notification
@@ -9,12 +9,23 @@ import { sendOTP } from './twilioService.js';
 export const createNotification = async (data) => {
   try {
     const notification = await Notification.create(data);
-    
-    // Optionally send SMS for high priority notifications
-    if (data.priority === 'high' && process.env.SEND_SMS_NOTIFICATIONS === 'true') {
-      // This would integrate with Twilio for SMS notifications
-      // For now, we'll just log it
-      console.log(`High priority notification sent to user ${data.recipient}`);
+
+    // Optionally send push notification via FCM if configured
+    if (process.env.SEND_PUSH_NOTIFICATIONS === 'true') {
+      try {
+        await sendFcmToUser(data.recipient, {
+          title: data.title,
+          body: data.message,
+          data: {
+            type: data.type,
+            notificationId: String(notification._id),
+            entityType: data.relatedEntity?.entityType || '',
+            entityId: data.relatedEntity?.entityId ? String(data.relatedEntity.entityId) : '',
+          },
+        });
+      } catch (err) {
+        console.error('FCM push failed:', err?.message || err);
+      }
     }
 
     return notification;
@@ -130,7 +141,7 @@ export const sendPaymentNotification = async (payment, type = 'received') => {
 };
 
 /**
- * Send proximity notification to nearby farmers
+ * Send proximity notification to nearby farmers (when equipment is listed)
  */
 export const sendProximityNotification = async (equipment, nearbyFarmers) => {
   try {
@@ -151,6 +162,32 @@ export const sendProximityNotification = async (equipment, nearbyFarmers) => {
     }
   } catch (error) {
     console.error('Error sending proximity notifications:', error);
+  }
+};
+
+/**
+ * Send equipment arrival notification to nearby farmers
+ * When equipment arrives at a location (e.g. for seasonal work), nearby farmers get notified
+ */
+export const sendEquipmentArrivalNotification = async (equipment, location, nearbyFarmers) => {
+  try {
+    for (const farmerData of nearbyFarmers) {
+      await createNotification({
+        recipient: farmerData.user._id,
+        type: 'equipment_arrived',
+        title: 'Equipment Arrived Nearby!',
+        message: `${equipment.name} has arrived ${farmerData.distance.toFixed(
+          1
+        )}km from your location. Book now for seasonal crops!`,
+        relatedEntity: {
+          entityType: 'Equipment',
+          entityId: equipment._id,
+        },
+        priority: 'high',
+      });
+    }
+  } catch (error) {
+    console.error('Error sending equipment arrival notifications:', error);
   }
 };
 

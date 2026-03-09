@@ -1,18 +1,22 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { showToast } from '../utils/helpers';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { auth } from '../firebase';
 
 const Login = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, sendOTP } = useAuth();
+  const { login } = useAuth();
 
   const [phone, setPhone] = useState('');
   const [otp, setOTP] = useState('');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const recaptchaVerifierRef = useRef(null);
 
   const handlePhoneChange = (e) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -32,12 +36,29 @@ const Login = () => {
 
     setLoading(true);
     try {
-      await sendOTP(`+91${phone}`);
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+
+      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+      });
+
+      await recaptchaVerifierRef.current.render();
+
+      const result = await signInWithPhoneNumber(
+        auth,
+        `+91${phone}`,
+        recaptchaVerifierRef.current
+      );
+
+      setConfirmationResult(result);
       setStep(2);
-      showToast('OTP sent successfully! Check backend console.', 'success');
+      showToast('OTP sent successfully!', 'success');
     } catch (error) {
       console.error('Send OTP error:', error);
-      showToast(error.response?.data?.message || 'Failed to send OTP', 'error');
+      showToast(error?.message || 'Failed to send OTP', 'error');
     } finally {
       setLoading(false);
     }
@@ -51,7 +72,15 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const user = await login(`+91${phone}`, otp);
+      if (!confirmationResult) {
+        showToast('Please request OTP again', 'error');
+        return;
+      }
+
+      const credential = await confirmationResult.confirm(otp);
+      const idToken = await credential.user.getIdToken();
+
+      const user = await login(idToken);
       showToast('Login successful!', 'success');
 
       if (user.role === 'farmer') navigate('/farmer');
@@ -59,7 +88,7 @@ const Login = () => {
       else if (user.role === 'admin') navigate('/admin');
     } catch (error) {
       console.error('Login error:', error);
-      showToast(error.response?.data?.message || 'Login failed', 'error');
+      showToast(error.response?.data?.message || error?.message || 'Login failed', 'error');
     } finally {
       setLoading(false);
     }
@@ -173,7 +202,7 @@ const Login = () => {
                   }}
                 />
                 <p className="text-[11px] text-gray-400 mt-1 text-center">
-                  Dev mode: check backend terminal for the OTP.
+                  Enter the 6-digit code sent to your phone.
                 </p>
               </div>
 
@@ -183,6 +212,7 @@ const Login = () => {
                   onClick={() => {
                     setStep(1);
                     setOTP('');
+                    setConfirmationResult(null);
                   }}
                   className="w-1/3 border border-gray-200 text-xs font-semibold text-gray-700 rounded-2xl py-3 hover:bg-gray-50 transition"
                 >
@@ -230,6 +260,7 @@ const Login = () => {
           </div>
         </div>
       </div>
+      <div id="recaptcha-container" />
     </div>
   );
 };

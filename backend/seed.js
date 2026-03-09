@@ -245,10 +245,10 @@ const seedDatabase = async () => {
     }
 
     console.log('✅ Database seeded successfully with Mysore locations!');
-    console.log('\nSample Credentials:');
-    console.log('Farmer: Phone - 9000000000 (OTP: 123456 in dev mode)');
-    console.log('Renter: Phone - 9100000000 (OTP: 123456 in dev mode)');
-    console.log('Admin: Phone - 9999999999 (OTP: 123456 in dev mode)');
+    console.log('\nSample Credentials (OTP verified via Firebase):');
+    console.log('Farmer: Phone - 9000000000');
+    console.log('Renter: Phone - 9100000000');
+    console.log('Admin: Phone - 9999999999');
 
     process.exit(0);
   } catch (error) {

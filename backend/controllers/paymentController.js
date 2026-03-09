@@ -1,5 +1,6 @@
 import Payment from '../models/Payment.js';
 import Booking from '../models/Booking.js';
+import Equipment from '../models/Equipment.js';
 import User from '../models/User.js';
 import {
   createOrder,
@@ -7,7 +8,7 @@ import {
   getPaymentDetails,
   initiateRefund,
 } from '../utils/razorpayService.js';
-import { sendPaymentNotification } from '../utils/notificationService.js';
+import { sendPaymentNotification, sendBookingConfirmation } from '../utils/notificationService.js';
 
 /**
  * @desc    Create payment order for booking
@@ -155,6 +156,7 @@ export const verifyPayment = async (req, res, next) => {
     if (paymentType === 'advance') {
       booking.paymentStatus.advance = true;
       booking.paymentStatus.advancePaymentId = paymentId;
+      booking.status = 'confirmed';
     } else if (paymentType === 'full') {
       booking.paymentStatus.full = true;
       booking.paymentStatus.fullPaymentId = paymentId;
@@ -162,22 +164,61 @@ export const verifyPayment = async (req, res, next) => {
 
     await booking.save();
 
-    // Update user totals
-    await User.findByIdAndUpdate(booking.farmer, {
-      $inc: { totalSpent: payment.amount },
-    });
+    // Full confirmation flow for advance payment: update equipment schedule, user history, notifications
+    if (paymentType === 'advance') {
+      const equipment = await Equipment.findById(booking.equipment);
+      let scheduleEntry = equipment.availability.schedule.find(
+        (entry) =>
+          new Date(entry.date).toDateString() ===
+          new Date(booking.bookingDate).toDateString()
+      );
 
-    await User.findByIdAndUpdate(booking.renter, {
-      $inc: { totalEarnings: payment.amount },
-    });
+      if (!scheduleEntry) {
+        equipment.availability.schedule.push({
+          date: booking.bookingDate,
+          slots: [
+            {
+              startTime: booking.timeSlot.startTime,
+              endTime: booking.timeSlot.endTime,
+              isBooked: true,
+              bookingId: booking._id,
+            },
+          ],
+        });
+      } else {
+        scheduleEntry.slots.push({
+          startTime: booking.timeSlot.startTime,
+          endTime: booking.timeSlot.endTime,
+          isBooked: true,
+          bookingId: booking._id,
+        });
+      }
+      await equipment.save();
 
-    // Send notification
-    await sendPaymentNotification(payment, 'received');
+      await User.findByIdAndUpdate(booking.farmer, {
+        $push: { bookingHistory: booking._id },
+        $inc: { totalSpent: payment.amount },
+      });
+      await User.findByIdAndUpdate(booking.renter, {
+        $inc: { totalEarnings: payment.amount },
+      });
+
+      await sendBookingConfirmation(booking);
+    } else {
+      await User.findByIdAndUpdate(booking.farmer, {
+        $inc: { totalSpent: payment.amount },
+      });
+      await User.findByIdAndUpdate(booking.renter, {
+        $inc: { totalEarnings: payment.amount },
+      });
+      await sendPaymentNotification(payment, 'received');
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Payment verified successfully',
+      message: paymentType === 'advance' ? 'Payment verified and booking confirmed' : 'Payment verified successfully',
       payment,
+      booking: paymentType === 'advance' ? await Booking.findById(bookingId).populate('equipment farmer renter') : undefined,
     });
   } catch (error) {
     next(error);

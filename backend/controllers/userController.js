@@ -245,3 +245,63 @@ export const toggleUserStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Register/update an FCM token for push notifications
+ * @route   POST /api/users/fcm-token
+ * @access  Private
+ */
+export const registerFcmToken = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'FCM token is required',
+      });
+    }
+
+    await User.updateOne(
+      { _id: req.user.id },
+      { $addToSet: { fcmTokens: token } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'FCM token registered',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Remove an FCM token (e.g. logout/uninstall)
+ * @route   DELETE /api/users/fcm-token
+ * @access  Private
+ */
+export const unregisterFcmToken = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'FCM token is required',
+      });
+    }
+
+    await User.updateOne(
+      { _id: req.user.id },
+      { $pull: { fcmTokens: token } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'FCM token removed',
+    });
+  } catch (error) {
+    next(error);
+  }
+};

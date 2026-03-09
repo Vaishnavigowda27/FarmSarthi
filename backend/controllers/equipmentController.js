@@ -1,7 +1,8 @@
 import Equipment from '../models/Equipment.js';
 import User from '../models/User.js';
-import { findNearbyEquipment } from '../utils/distanceCalculator.js';
-import { sendProximityNotification } from '../utils/notificationService.js';
+import Booking from '../models/Booking.js';
+import { findNearbyEquipment, findNearbyUsers } from '../utils/distanceCalculator.js';
+import { sendProximityNotification, sendEquipmentArrivalNotification } from '../utils/notificationService.js';
 
 /**
  * @desc    Add new equipment
@@ -89,12 +90,16 @@ export const addEquipment = async (req, res, next) => {
       $push: { equipmentListed: equipment._id },
     });
 
-    // Notify nearby farmers (within 10km) - don't fail add if notification fails
+    // Notify nearby farmers (within radius) - don't fail add if notification fails
     try {
-      const farmers = await User.find({ role: 'farmer', isActive: true });
-      const nearbyFarmers = findNearbyEquipment(
+      const farmers = await User.find({
+        role: 'farmer',
+        isActive: true,
+        'location.coordinates': { $exists: true, $ne: [] },
+      }).select('location');
+      const nearbyFarmers = findNearbyUsers(
         { coordinates: coords },
-        farmers.map((f) => ({ location: f.location, _id: f._id })),
+        farmers,
         parseInt(process.env.PROXIMITY_RADIUS_KM) || 10
       );
       if (nearbyFarmers.length > 0) {
@@ -316,7 +321,8 @@ export const deleteEquipment = async (req, res, next) => {
 };
 
 /**
- * @desc    Get equipment availability for a specific date
+ * @desc    Get equipment availability for a specific date (24hr slots)
+ * Returns 24 hourly slots (00:00-01:00, 01:00-02:00, ... 23:00-24:00)
  * @route   GET /api/equipment/:id/availability
  * @access  Public
  */
@@ -340,28 +346,124 @@ export const getEquipmentAvailability = async (req, res, next) => {
       });
     }
 
-    // Find schedule for the requested date
     const requestedDate = new Date(date);
-    const scheduleEntry = equipment.availability.schedule.find(
-      (entry) =>
-        new Date(entry.date).toDateString() === requestedDate.toDateString()
-    );
+    requestedDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(requestedDate);
+    nextDay.setDate(nextDay.getDate() + 1);
 
-    if (!scheduleEntry) {
-      // No bookings for this date - all 8 hours available (9 AM - 5 PM)
-      return res.status(200).json({
-        success: true,
-        date: requestedDate,
-        availableSlots: [
-          { startTime: '09:00', endTime: '17:00', isBooked: false },
-        ],
+    // Get all bookings for this equipment on this date (hold, confirmed, ongoing)
+    const bookings = await Booking.find({
+      equipment: equipment._id,
+      bookingDate: { $gte: requestedDate, $lt: nextDay },
+      status: { $in: ['hold', 'confirmed', 'ongoing'] },
+    }).select('timeSlot');
+
+    // Build 24 hourly slots (00:00 to 24:00)
+    const allSlots = [];
+    for (let h = 0; h < 24; h++) {
+      const startTime = `${String(h).padStart(2, '0')}:00`;
+      const endTime = h < 23 ? `${String(h + 1).padStart(2, '0')}:00` : '24:00';
+      allSlots.push({ startTime, endTime, hour: h });
+    }
+
+    // Mark slots as booked if they overlap with any booking
+    const availableSlots = allSlots.map((slot) => {
+      const slotStart = slot.hour * 60;
+      const slotEnd = slot.hour < 23 ? (slot.hour + 1) * 60 : 24 * 60;
+
+      const isBooked = bookings.some((b) => {
+        const [bStartH, bStartM] = b.timeSlot.startTime.split(':').map(Number);
+        const [bEndH, bEndM] = b.timeSlot.endTime.split(':').map(Number);
+        const bStart = bStartH * 60 + bStartM;
+        const bEnd = (bEndH === 0 && bEndM === 0 ? 24 : bEndH) * 60 + bEndM;
+
+        // Overlap: slot overlaps with booking
+        return slotStart < bEnd && slotEnd > bStart;
       });
+
+      return {
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isBooked,
+      };
+    });
+
+    // Also return available time ranges (consecutive free slots)
+    const availableRanges = [];
+    let rangeStart = null;
+    for (let i = 0; i <= availableSlots.length; i++) {
+      const slot = availableSlots[i];
+      if (slot && !slot.isBooked) {
+        if (rangeStart === null) rangeStart = slot.startTime;
+      } else {
+        if (rangeStart !== null) {
+          availableRanges.push({
+            startTime: rangeStart,
+            endTime: availableSlots[i - 1].endTime,
+          });
+          rangeStart = null;
+        }
+      }
     }
 
     res.status(200).json({
       success: true,
       date: requestedDate,
-      availableSlots: scheduleEntry.slots,
+      slots: availableSlots,
+      availableRanges,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Mark equipment as arrived at location - notify nearby farmers
+ * Used when equipment arrives somewhere (e.g. for seasonal crops) - nearby farmers get notified
+ * @route   POST /api/equipment/:id/arrived
+ * @access  Private (Renter - Owner only)
+ */
+export const markEquipmentArrived = async (req, res, next) => {
+  try {
+    const equipment = await Equipment.findById(req.params.id);
+
+    if (!equipment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Equipment not found',
+      });
+    }
+
+    if (equipment.owner.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this equipment',
+      });
+    }
+
+    const { coordinates, address } = req.body;
+    const coords = coordinates || equipment.location?.coordinates || [76.6394, 12.2958];
+
+    // Find nearby farmers and notify them
+    const farmers = await User.find({
+      role: 'farmer',
+      isActive: true,
+      'location.coordinates': { $exists: true, $ne: [] },
+    }).select('location');
+    const nearbyFarmers = findNearbyUsers(
+      { coordinates: coords },
+      farmers,
+      parseInt(process.env.PROXIMITY_RADIUS_KM) || 10
+    );
+
+    if (nearbyFarmers.length > 0) {
+      await sendEquipmentArrivalNotification(equipment, { coordinates: coords }, nearbyFarmers);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Equipment arrival notification sent to ${nearbyFarmers.length} nearby farmer(s)`,
+      notifiedCount: nearbyFarmers.length,
     });
   } catch (error) {
     next(error);

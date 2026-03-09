@@ -41,8 +41,11 @@ export const createBooking = async (req, res, next) => {
       });
     }
 
-    // Check for conflicts
+    // Normalize date to start of day for consistent matching
     const requestedDate = new Date(bookingDate);
+    requestedDate.setHours(0, 0, 0, 0);
+
+    // Check for conflicts (overlapping time slots on same date)
     const existingBooking = await Booking.findOne({
       equipment: equipmentId,
       bookingDate: requestedDate,

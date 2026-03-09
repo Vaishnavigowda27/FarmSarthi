@@ -29,21 +29,67 @@ const Payment = () => {
     }
   };
 
-  const handlePayment = async () => {
-    setProcessing(true);
-    
-    try {
-      // Simulate payment (integrate Razorpay for production)
-      await axios.put(`/api/bookings/${bookingId}/confirm`, {
-        paymentId: 'DEMO_' + Date.now()
-      });
+  const createPaymentOrder = async () => {
+    const res = await axios.post('/api/payments/create-order', {
+      bookingId,
+      paymentType: 'advance',
+    });
+    return res.data;
+  };
 
-      showToast('Payment successful!', 'success');
-      navigate('/farmer');
-      
+  const handlePayment = async () => {
+    if (!booking || booking.status !== 'hold') {
+      showToast('Invalid booking state', 'error');
+      return;
+    }
+    setProcessing(true);
+    try {
+      const { order, razorpayKeyId } = await createPaymentOrder();
+      if (!order || !razorpayKeyId) {
+        showToast('Failed to create payment order', 'error');
+        setProcessing(false);
+        return;
+      }
+
+      const options = {
+        key: razorpayKeyId,
+        amount: order.amount,
+        currency: order.currency || 'INR',
+        name: 'FarmSaarthi',
+        description: `Advance payment for ${booking.equipment?.name || 'equipment'} booking`,
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            await axios.post('/api/payments/verify', {
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+              bookingId,
+              paymentType: 'advance',
+            });
+            showToast('Payment successful! Booking confirmed.', 'success');
+            navigate('/farmer');
+          } catch (err) {
+            showToast(err.response?.data?.message || 'Payment verification failed', 'error');
+          } finally {
+            setProcessing(false);
+          }
+        },
+        prefill: {
+          name: user?.name || '',
+          contact: user?.phone || '',
+        },
+        theme: { color: '#2D6A4F' },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', () => {
+        showToast('Payment failed. Please try again.', 'error');
+        setProcessing(false);
+      });
+      rzp.open();
     } catch (error) {
       showToast(error.response?.data?.message || 'Payment failed', 'error');
-    } finally {
       setProcessing(false);
     }
   };
