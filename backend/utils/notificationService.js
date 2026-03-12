@@ -1,5 +1,4 @@
 import Notification from '../models/Notification.js';
-import { sendFcmToUser } from './fcmService.js';
 
 /**
  * Create a notification
@@ -9,24 +8,6 @@ import { sendFcmToUser } from './fcmService.js';
 export const createNotification = async (data) => {
   try {
     const notification = await Notification.create(data);
-
-    // Optionally send push notification via FCM if configured
-    if (process.env.SEND_PUSH_NOTIFICATIONS === 'true') {
-      try {
-        await sendFcmToUser(data.recipient, {
-          title: data.title,
-          body: data.message,
-          data: {
-            type: data.type,
-            notificationId: String(notification._id),
-            entityType: data.relatedEntity?.entityType || '',
-            entityId: data.relatedEntity?.entityId ? String(data.relatedEntity.entityId) : '',
-          },
-        });
-      } catch (err) {
-        console.error('FCM push failed:', err?.message || err);
-      }
-    }
 
     return notification;
   } catch (error) {
@@ -188,6 +169,32 @@ export const sendEquipmentArrivalNotification = async (equipment, location, near
     }
   } catch (error) {
     console.error('Error sending equipment arrival notifications:', error);
+  }
+};
+
+/**
+ * Send "equipment on roll nearby" notification to nearby farmers
+ * Triggered when a booking is confirmed (so others nearby can book too).
+ */
+export const sendEquipmentOnRollNearbyNotification = async (equipment, booking, nearbyFarmers) => {
+  try {
+    for (const farmerData of nearbyFarmers) {
+      await createNotification({
+        recipient: farmerData.user._id,
+        type: 'equipment_on_roll',
+        title: 'Equipment On Roll Nearby!',
+        message: `${equipment.name} is on roll about ${farmerData.distance.toFixed(
+          1
+        )}km from you (pickup: ${booking.pickupLocation?.address || 'nearby'}). Would you like to book it?`,
+        relatedEntity: {
+          entityType: 'Booking',
+          entityId: booking._id,
+        },
+        priority: 'high',
+      });
+    }
+  } catch (error) {
+    console.error('Error sending equipment on-roll notifications:', error);
   }
 };
 

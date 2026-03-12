@@ -1,11 +1,12 @@
 import Booking from '../models/Booking.js';
 import Equipment from '../models/Equipment.js';
 import User from '../models/User.js';
-import { calculateDistance } from '../utils/distanceCalculator.js';
+import { calculateDistance, findNearbyUsers } from '../utils/distanceCalculator.js';
 import { calculateAdvancePayment } from '../utils/razorpayService.js';
 import {
   sendBookingConfirmation,
   sendCancellationNotification,
+  sendEquipmentOnRollNearbyNotification,
 } from '../utils/notificationService.js';
 
 /**
@@ -197,6 +198,28 @@ export const confirmBooking = async (req, res, next) => {
 
     // Send notifications
     await sendBookingConfirmation(booking);
+
+    // Proximity notification: other nearby farmers around pickup location
+    try {
+      const farmers = await User.find({
+        role: 'farmer',
+        isActive: true,
+        _id: { $ne: req.user.id }, // exclude the booking farmer
+        'location.coordinates': { $exists: true, $ne: [] },
+      }).select('location');
+
+      const nearbyFarmers = findNearbyUsers(
+        { coordinates: booking.pickupLocation.coordinates },
+        farmers,
+        parseInt(process.env.PROXIMITY_RADIUS_KM) || 10
+      );
+
+      if (nearbyFarmers.length > 0) {
+        await sendEquipmentOnRollNearbyNotification(equipment, booking, nearbyFarmers);
+      }
+    } catch (notifErr) {
+      console.warn('On-roll proximity notification skipped:', notifErr.message);
+    }
 
     // Populate and return
     await booking.populate('equipment farmer renter');

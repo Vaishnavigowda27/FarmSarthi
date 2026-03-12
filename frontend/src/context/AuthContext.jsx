@@ -41,10 +41,37 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Login with Firebase Phone Auth (ID token)
-  const login = async (idToken) => {
+  // Send OTP
+  const sendOTP = async (phone) => {
     try {
-      const response = await axios.post('/api/auth/login', { idToken });
+      console.log('AuthContext: Sending OTP to', phone);
+      const response = await axios.post('/api/auth/send-otp', { phone });
+      console.log('AuthContext: OTP response', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('AuthContext: Send OTP error', error);
+      throw error;
+    }
+  };
+
+  // Resend OTP
+  const resendOTP = async (phone) => {
+    try {
+      console.log('AuthContext: Resending OTP to', phone);
+      const response = await axios.post('/api/auth/resend-otp', { phone });
+      console.log('AuthContext: Resend OTP response', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('AuthContext: Resend OTP error', error);
+      throw error;
+    }
+  };
+
+  // Login with phone + OTP
+  const login = async (phone, otp) => {
+    try {
+      console.log('AuthContext: Logging in with', phone, otp);
+      const response = await axios.post('/api/auth/login', { phone, otp });
       console.log('AuthContext: Login response', response.data);
       
       const { token: newToken, user: userData } = response.data;
@@ -67,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register with Firebase Phone Auth (ID token)
+  // Register with phone + OTP
   const register = async (userData) => {
     try {
       console.log('AuthContext: Registering user', userData);
@@ -119,6 +146,8 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     loading,
+    sendOTP,
+    resendOTP,
     login,
     register,
     logout,

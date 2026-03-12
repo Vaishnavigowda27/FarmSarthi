@@ -6,8 +6,6 @@ import {
   getRenterDashboard,
   getAllUsers,
   toggleUserStatus,
-  registerFcmToken,
-  unregisterFcmToken,
 } from '../controllers/userController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -21,9 +19,6 @@ router.put('/profile', updateUserProfile);
 
 router.get('/farmer/dashboard', authorize('farmer'), getFarmerDashboard);
 router.get('/renter/dashboard', authorize('renter'), getRenterDashboard);
-
-router.post('/fcm-token', registerFcmToken);
-router.delete('/fcm-token', unregisterFcmToken);
 
 // Admin-only user management
 router.get('/', authorize('admin'), getAllUsers);

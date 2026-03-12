@@ -1,20 +1,16 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentLocation, showToast } from '../utils/helpers';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { auth } from '../firebase';
 
 const Register = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, sendOTP } = useAuth();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState(null);
-  const recaptchaVerifierRef = useRef(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -71,29 +67,13 @@ const Register = () => {
 
     setLoading(true);
     try {
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-      }
-
-      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-      });
-
-      await recaptchaVerifierRef.current.render();
-
-      const result = await signInWithPhoneNumber(
-        auth,
-        `+91${formData.phone}`,
-        recaptchaVerifierRef.current
-      );
-
-      setConfirmationResult(result);
+      console.log('Sending OTP to:', `+91${formData.phone}`);
+      await sendOTP(`+91${formData.phone}`);
       setStep(2);
-      showToast('OTP sent successfully!', 'success');
+      showToast('OTP sent successfully! Check backend console (dev).', 'success');
     } catch (error) {
       console.error('Send OTP error:', error);
-      showToast(error?.message || 'Failed to send OTP', 'error');
+      showToast(error.response?.data?.message || error?.message || 'Failed to send OTP', 'error');
     } finally {
       setLoading(false);
     }
@@ -112,19 +92,14 @@ const Register = () => {
 
     setLoading(true);
     try {
-      if (!confirmationResult) {
-        showToast('Please request OTP again', 'error');
-        return;
-      }
-
-      const credential = await confirmationResult.confirm(formData.otp);
-      const idToken = await credential.user.getIdToken();
+      console.log('Registering with data:', {
+        ...formData,
+        phone: `+91${formData.phone}`,
+      });
 
       const user = await register({
-        idToken,
-        name: formData.name,
-        role: formData.role,
-        location: formData.location,
+        ...formData,
+        phone: `+91${formData.phone}`,
       });
 
       showToast('Registration successful!', 'success');
@@ -332,7 +307,7 @@ const Register = () => {
                   }}
                 />
                 <p className="text-[11px] text-gray-400 mt-1 text-center">
-                  Enter the 6-digit code sent to your phone.
+                  Dev mode: check backend terminal for the OTP.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -341,7 +316,6 @@ const Register = () => {
                   onClick={() => {
                     setStep(1);
                     setFormData({ ...formData, otp: '' });
-                    setConfirmationResult(null);
                   }}
                   className="w-1/3 border border-gray-200 text-xs font-semibold text-gray-700 rounded-2xl py-3 hover:bg-gray-50 transition"
                 >
@@ -372,7 +346,6 @@ const Register = () => {
           </div>
         </div>
       </div>
-      <div id="recaptcha-container" />
     </div>
   );
 };

@@ -1,79 +1,130 @@
 import User from '../models/User.js';
 import { generateToken } from '../utils/jwt.js';
-import { normalizeTo10DigitPhone, verifyFirebaseIdToken } from '../utils/firebaseAuth.js';
+import { createAndSendOTP, verifyOTP, resendOTP as resendOTPService } from '../utils/smsService.js';
+
+// Send OTP
+export const sendOTPController = async (req, res, next) => {
+  try {
+    let { phone } = req.body;
+
+    phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
+
+    // Strict Indian mobile validation: 10 digits, starting 6-9
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid Indian mobile number (10 digits starting with 6-9)',
+      });
+    }
+
+    console.log('📞 Sending OTP to:', phone);
+
+    const result = await createAndSendOTP(phone);
+
+    console.log('✅ OTP result:', result);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('❌ Send OTP Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send OTP',
+    });
+  }
+};
+
+// Resend OTP
+export const resendOTPController = async (req, res, next) => {
+  try {
+    let { phone } = req.body;
+
+    phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
+
+    console.log('🔄 Resending OTP to:', phone);
+
+    const result = await resendOTPService(phone);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('❌ Resend OTP Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to resend OTP',
+    });
+  }
+};
 
 // Register
 export const register = async (req, res, next) => {
   try {
-    const { name, role, location, idToken } = req.body;
+    let { name, phone, otp, role, location } = req.body;
 
-    const decoded = await verifyFirebaseIdToken(idToken);
-    const tokenPhone10 = normalizeTo10DigitPhone(decoded.phone_number);
+    phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
 
-    if (!tokenPhone10) {
+    console.log('📝 Registration attempt:', { name, phone, role });
+
+    if (!name || !phone || !otp || !role) {
       return res.status(400).json({
         success: false,
-        message: 'Unable to read phone number from Firebase token',
+        message: 'Please provide all required fields',
       });
     }
 
-    console.log('📝 Registration attempt:', { name, phone: tokenPhone10, role });
-
-    // Validate
-    if (!name || !role) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields'
-      });
-    }
-
-    // Validate role
     if (!['farmer', 'renter'].includes(role)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid role. Must be farmer or renter'
+        message: 'Invalid role. Must be farmer or renter',
       });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ phone: tokenPhone10 });
+    const existingUser = await User.findOne({ phone });
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User with this phone number already exists'
+        message: 'User with this phone number already exists',
       });
     }
 
-    // Default location (frontend doesn't collect location during registration)
-    const userLocation = {
+    console.log('🔐 Verifying OTP...');
+    const otpResult = await verifyOTP(phone, otp);
+
+    if (!otpResult.success) {
+      console.log('❌ OTP verification failed');
+      return res.status(400).json(otpResult);
+    }
+
+    const defaultLocation = {
       type: 'Point',
       coordinates: [76.6394, 12.2958],
       address: 'Mysore, Karnataka',
       city: 'Mysore',
       state: 'Karnataka',
-      pincode: '570001'
+      pincode: '570001',
     };
 
-    // Create user
+    const finalLocation =
+      location && location.coordinates && location.coordinates.length
+        ? {
+            type: 'Point',
+            coordinates: location.coordinates,
+            address: location.address || defaultLocation.address,
+            city: location.city || defaultLocation.city,
+            state: location.state || defaultLocation.state,
+            pincode: location.pincode || defaultLocation.pincode,
+          }
+        : defaultLocation;
+
     const user = await User.create({
       name,
-      phone: tokenPhone10,
+      phone,
       role,
-      location: location?.coordinates?.length ? {
-        type: 'Point',
-        coordinates: location.coordinates,
-        address: location.address || userLocation.address,
-        city: location.city || userLocation.city,
-        state: location.state || userLocation.state,
-        pincode: location.pincode || userLocation.pincode,
-      } : userLocation,
+      location: finalLocation,
       isVerified: true,
-      isActive: true
+      isActive: true,
     });
 
     console.log('✅ User created:', user._id);
 
-    // Generate JWT token
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -85,15 +136,14 @@ export const register = async (req, res, next) => {
         name: user.name,
         phone: user.phone,
         role: user.role,
-        location: user.location
-      }
+        location: user.location,
+      },
     });
-
   } catch (error) {
     console.error('❌ Register Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Registration failed'
+      message: 'Registration failed',
     });
   }
 };
@@ -101,46 +151,42 @@ export const register = async (req, res, next) => {
 // Login
 export const login = async (req, res, next) => {
   try {
-    const { idToken } = req.body;
+    let { phone, otp } = req.body;
 
-    const decoded = await verifyFirebaseIdToken(idToken);
-    const tokenPhone10 = normalizeTo10DigitPhone(decoded.phone_number);
+    phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
 
-    if (!tokenPhone10) {
+    console.log('🔑 Login attempt for:', phone);
+
+    if (!phone || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Unable to read phone number from Firebase token',
+        message: 'Please provide phone number and OTP',
       });
     }
 
-    console.log('🔑 Login attempt for:', tokenPhone10);
-
-    // Validate
-    if (!idToken) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide Firebase ID token'
-      });
-    }
-
-    // Find user
-    const user = await User.findOne({ phone: tokenPhone10 });
+    const user = await User.findOne({ phone });
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found. Please register first.'
+        message: 'User not found. Please register first.',
       });
     }
 
-    // Check if user is active
+    console.log('🔐 Verifying OTP...');
+    const otpResult = await verifyOTP(phone, otp);
+
+    if (!otpResult.success) {
+      console.log('❌ OTP verification failed');
+      return res.status(400).json(otpResult);
+    }
+
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Your account has been deactivated'
+        message: 'Your account has been deactivated',
       });
     }
 
-    // Generate JWT token
     const token = generateToken(user._id);
 
     console.log('✅ Login successful for user:', user._id);
@@ -154,15 +200,14 @@ export const login = async (req, res, next) => {
         name: user.name,
         phone: user.phone,
         role: user.role,
-        location: user.location
-      }
+        location: user.location,
+      },
     });
-
   } catch (error) {
     console.error('❌ Login Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Login failed'
+      message: 'Login failed',
     });
   }
 };
