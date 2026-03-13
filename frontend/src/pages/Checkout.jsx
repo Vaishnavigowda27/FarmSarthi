@@ -31,7 +31,7 @@ const Checkout = () => {
     hoursCost: 0,
     distanceCost: 0,
     totalCost: 0,
-    advancePayment: 0,
+    serviceCharge: 0,
     remainingPayment: 0,
     hours: 0,
   });
@@ -88,15 +88,15 @@ const Checkout = () => {
     const hoursCost = hours * perHour;
     const distanceCost = distance * perKm;
     const totalCost = hoursCost + distanceCost;
-    const advancePayment = Math.round(totalCost * 0.1);
-    const remainingPayment = totalCost - advancePayment;
+    const serviceCharge = Math.round(totalCost * 0.02);
+    const remainingPayment = totalCost - serviceCharge;
 
     setPricing({
       hours,
       hoursCost,
       distanceCost,
       totalCost,
-      advancePayment,
+      serviceCharge,
       remainingPayment,
     });
   };
@@ -265,13 +265,13 @@ const Checkout = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="rounded-2xl bg-farm-light/15 border border-farm-light/40 p-3">
                 <p className="text-gray-700 font-semibold mb-1">
-                  10% Advance Payment
+                  2% Service Charge (non‑refundable)
                 </p>
                 <p className="text-2xl font-bold text-farm-primary">
-                  ₹{pricing.advancePayment}
+                  ₹{pricing.serviceCharge}
                 </p>
                 <p className="text-[11px] text-gray-600 mt-1">
-                  Non‑refundable advance paid online to confirm your booking.
+                  Non‑refundable platform service charge collected online to confirm your booking.
                 </p>
               </div>
               <div className="rounded-2xl bg-gray-100 border border-gray-200 p-3">
@@ -376,7 +376,7 @@ const Checkout = () => {
             >
               {submitting
                 ? 'Creating booking…'
-                : `Pay ₹${pricing.advancePayment} Advance & Continue`}
+                : `Pay ₹${pricing.serviceCharge} Service Charge & Continue`}
             </button>
             <p className="text-[11px] text-gray-500 text-center">
               By continuing, you agree to FarmSaarthi’s terms and cancellation
@@ -403,7 +403,7 @@ const Checkout = () => {
               </div>
             </div>
             <p className="text-[11px] text-gray-600 text-center">
-              Scan this QR with your UPI app to pay ₹{pricing.advancePayment}.
+              Scan this QR with your UPI app to pay ₹{pricing.serviceCharge}.
             </p>
             <button
               type="button"

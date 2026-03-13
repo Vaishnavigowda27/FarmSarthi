@@ -52,7 +52,7 @@ export const createPaymentOrder = async (req, res, next) => {
           message: 'Advance payment already completed',
         });
       }
-      amount = booking.pricing.advancePayment;
+      amount = booking.pricing.serviceCharge;
     } else if (paymentType === 'full') {
       if (booking.paymentStatus.full) {
         return res.status(400).json({

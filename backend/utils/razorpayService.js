@@ -165,8 +165,8 @@ export const initiateRefund = async (paymentId, amount, notes = {}) => {
   }
 };
 
-// Calculate advance payment amount
-export const calculateAdvancePayment = (totalAmount) => {
-  const advancePercentage = parseInt(process.env.ADVANCE_PAYMENT_PERCENTAGE) || 10;
-  return (totalAmount * advancePercentage) / 100;
+// Calculate non-refundable service charge (percentage of total)
+export const calculateServiceCharge = (totalAmount) => {
+  const percentage = parseFloat(process.env.SERVICE_CHARGE_PERCENTAGE) || 2;
+  return (totalAmount * percentage) / 100;
 };

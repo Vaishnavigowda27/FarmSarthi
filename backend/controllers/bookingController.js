@@ -2,7 +2,7 @@ import Booking from '../models/Booking.js';
 import Equipment from '../models/Equipment.js';
 import User from '../models/User.js';
 import { calculateDistance, findNearbyUsers } from '../utils/distanceCalculator.js';
-import { calculateAdvancePayment } from '../utils/razorpayService.js';
+import { calculateServiceCharge } from '../utils/razorpayService.js';
 import {
   sendBookingConfirmation,
   sendCancellationNotification,
@@ -75,8 +75,8 @@ export const createBooking = async (req, res, next) => {
     const totalHoursCost = equipment.pricing.perHour * duration;
     const totalDistanceCost = equipment.pricing.perKm * distance;
     const totalCost = totalHoursCost + totalDistanceCost;
-    const advancePayment = calculateAdvancePayment(totalCost);
-    const remainingPayment = totalCost - advancePayment;
+    const serviceCharge = calculateServiceCharge(totalCost);
+    const remainingPayment = totalCost - serviceCharge;
 
     // Create booking with HOLD status
     const booking = await Booking.create({
@@ -101,7 +101,7 @@ export const createBooking = async (req, res, next) => {
         totalHoursCost,
         totalDistanceCost,
         totalCost,
-        advancePayment,
+        serviceCharge,
         remainingPayment,
       },
       status: 'hold', // Temporary hold until payment

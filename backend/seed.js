@@ -199,6 +199,12 @@ const seedDatabase = async () => {
         name: equipData.name,
         description: equipData.description,
         category: equipData.category,
+        photos: [
+          {
+            url: `/uploads/placeholder-equipment-${i + 1}.jpg`,
+            publicId: `placeholder-equipment-${i + 1}.jpg`,
+          },
+        ],
         pricing: {
           perHour: 500 + i * 100,
           perKm: 20 + i * 5,
@@ -245,7 +251,7 @@ const seedDatabase = async () => {
     }
 
     console.log('✅ Database seeded successfully with Mysore locations!');
-    console.log('\nSample Credentials (OTP verified via Firebase):');
+    console.log('\nSample Credentials (OTP via SMS / console in dev):');
     console.log('Farmer: Phone - 9000000000');
     console.log('Renter: Phone - 9100000000');
     console.log('Admin: Phone - 9999999999');

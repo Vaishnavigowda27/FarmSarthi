@@ -56,7 +56,7 @@ const Payment = () => {
         amount: order.amount,
         currency: order.currency || 'INR',
         name: 'FarmSaarthi',
-        description: `Advance payment for ${booking.equipment?.name || 'equipment'} booking`,
+        description: `Service charge for ${booking.equipment?.name || 'equipment'} booking`,
         order_id: order.id,
         handler: async (response) => {
           try {
@@ -117,7 +117,7 @@ const Payment = () => {
           Complete Payment
         </h1>
         <p className="text-xs text-gray-600">
-          Pay the 10% advance securely to confirm your booking.
+          Pay the 2% non‑refundable service charge securely to confirm your booking.
         </p>
       </div>
 
@@ -175,19 +175,18 @@ const Payment = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-xs">
               <div className="rounded-2xl bg-[#74C69D]/15 border border-[#74C69D]/40 p-4 space-y-2">
                 <h3 className="text-sm font-bold text-[#1B4332]">
-                  10% Advance (Pay Now)
+                  Service Charge (Pay Now)
                 </h3>
                 <p className="text-2xl font-bold text-[#2D6A4F]">
-                  ₹{(booking.pricing?.advancePayment ?? booking.advancePaid ?? 0).toLocaleString('en-IN')}
+                  ₹{(booking.pricing?.serviceCharge ?? booking.advancePaid ?? 0).toLocaleString('en-IN')}
                 </p>
                 <p className="text-[11px] text-gray-700">
-                  This amount is paid online to confirm your booking and is
-                  non‑refundable on cancellation.
+                  This is a 2% non‑refundable platform service charge paid online to confirm your booking.
                 </p>
               </div>
               <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 space-y-2">
                 <h3 className="text-sm font-bold text-[#1B4332]">
-                  90% Balance (After Service)
+                  Remaining Amount (After Service)
                 </h3>
                 <p className="text-2xl font-bold text-[#1B4332]">
                   ₹{(booking.pricing?.remainingPayment ?? booking.remainingAmount ?? 0).toLocaleString('en-IN')}
@@ -204,8 +203,8 @@ const Payment = () => {
                 Important Information
               </p>
               <ul className="space-y-1 list-disc list-inside">
-                <li>Advance payment is non‑refundable.</li>
-                <li>Remaining 90% to be paid after service completion.</li>
+                <li>Service charge is non‑refundable.</li>
+                <li>Remaining amount to be paid after service completion.</li>
                 <li>Please contact the owner before the scheduled time.</li>
               </ul>
             </div>
@@ -229,7 +228,7 @@ const Payment = () => {
                   <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Pay ₹{booking.pricing?.advancePayment ?? booking.advancePaid ?? 0} Now
+                  Pay ₹{booking.pricing?.serviceCharge ?? booking.advancePaid ?? 0} Now
                 </span>
               )}
             </button>

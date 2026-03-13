@@ -468,8 +468,8 @@ export default function RenterDashboard() {
                     ₹{(booking.pricing?.totalCost || 0).toLocaleString('en-IN')}
                   </p>
                   <p className="text-gray-500">
-                    Advance: ₹
-                    {(booking.pricing?.advancePayment || 0).toLocaleString(
+                    Service charge: ₹
+                    {(booking.pricing?.serviceCharge || 0).toLocaleString(
                       'en-IN',
                     )}
                   </p>

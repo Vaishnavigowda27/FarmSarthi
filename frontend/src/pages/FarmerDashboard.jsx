@@ -250,11 +250,11 @@ export default function FarmerDashboard() {
                     <span className="text-[11px] text-gray-600">Payment</span>
                     <div className="text-right text-[11px]">
                       <p className="text-gray-700">
-                        Advance:{' '}
+                        Service charge:{' '}
                         <span className="font-semibold text-[#2D6A4F]">
                           ₹
                           {(
-                            booking.pricing?.advancePayment ??
+                            booking.pricing?.serviceCharge ??
                             booking.advancePaid ??
                             0
                           ).toLocaleString('en-IN')}

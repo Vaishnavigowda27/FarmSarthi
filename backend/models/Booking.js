@@ -72,7 +72,7 @@ const bookingSchema = new mongoose.Schema(
         type: Number,
         required: true,
       },
-      advancePayment: {
+      serviceCharge: {
         type: Number,
         required: true,
       },
