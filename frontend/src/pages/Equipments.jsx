@@ -3,6 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { showToast } from '../utils/helpers';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix default marker icon (Leaflet bug with bundlers)
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+const userIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
 
 const Equipment = () => {
   const navigate = useNavigate();
@@ -12,6 +34,9 @@ const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [radius, setRadius] = useState('10');
   const [selectedImage, setSelectedImage] = useState(null);
+
+  const userLat = user?.location?.coordinates?.[1] || 12.2958;
+  const userLng = user?.location?.coordinates?.[0] || 76.6394;
 
   useEffect(() => {
     if (!user) {
@@ -28,9 +53,6 @@ const Equipment = () => {
   const loadEquipment = async () => {
     try {
       setLoading(true);
-      const userLat = user?.location?.coordinates?.[1] || 12.2958;
-      const userLng = user?.location?.coordinates?.[0] || 76.6394;
-
       const response = await axios.get('/api/equipment', {
         params: {
           latitude: userLat,
@@ -40,7 +62,6 @@ const Equipment = () => {
           verifiedOnly: true,
         },
       });
-
       setEquipment(response.data.equipment || []);
     } catch (error) {
       console.error('Error loading equipment:', error);
@@ -119,7 +140,7 @@ const Equipment = () => {
         </div>
       </section>
 
-      {/* List + mini map */}
+      {/* List + map */}
       {filteredEquipment.length === 0 ? (
         <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
           <svg
@@ -151,32 +172,29 @@ const Equipment = () => {
                 key={item._id}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col sm:flex-row"
               >
+                {/* Image */}
                 <div
-                  className={`sm:w-56 h-40 sm:h-32 bg-farm-primary/15 flex items-center justify-center overflow-hidden ${
+                  className={`sm:w-56 h-40 sm:h-auto bg-farm-primary/15 flex items-center justify-center overflow-hidden ${
                     item.photos?.[0]?.url ? 'cursor-pointer' : ''
                   }`}
                   onClick={() => {
                     if (item.photos?.[0]?.url) {
-                      const baseUrl = (
-                        import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
-                      ).replace(/\/api$/, '');
-                      setSelectedImage(`${baseUrl}${item.photos[0].url}`);
+                      setSelectedImage(`${BASE_URL}${item.photos[0].url}`);
                     }
                   }}
                 >
                   {item.photos?.[0]?.url ? (
                     <img
-                      src={`${
-                        (import.meta.env.VITE_API_URL ||
-                          'http://localhost:5000/api'
-                        ).replace(/\/api$/, '')}${item.photos[0].url}`}
+                      src={`${BASE_URL}${item.photos[0].url}`}
                       alt={item.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-4xl"></span>
+                    <span className="text-4xl">🚜</span>
                   )}
                 </div>
+
+                {/* Details */}
                 <div className="flex-1 p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -187,7 +205,7 @@ const Equipment = () => {
                         {item.description}
                       </p>
                     </div>
-                    <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                    <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">
                       {(item.distance ?? 0).toFixed(1)} km
                     </span>
                   </div>
@@ -226,21 +244,52 @@ const Equipment = () => {
             ))}
           </div>
 
-          {/* Mini map card */}
+          {/* Map card */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col">
-            <h2 className="text-sm font-bold text-gray-900 mb-1">
-              Map View
-            </h2>
+            <h2 className="text-sm font-bold text-gray-900 mb-1">Map View</h2>
             <p className="text-[11px] text-gray-500 mb-3">
-              Visual preview of equipment locations (placeholder).
+              Equipment locations near you.
             </p>
-            <div className="flex-1 rounded-2xl border border-dashed border-farm-light bg-[#E9F5EE] flex items-center justify-center text-[11px] text-gray-600">
-              Mini map placeholder
+            <div className="flex-1 rounded-2xl overflow-hidden min-h-[300px]">
+              <MapContainer
+                center={[userLat, userLng]}
+                zoom={12}
+                style={{ height: '100%', minHeight: '300px', width: '100%' }}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                />
+
+                {/* Your location */}
+                <Marker position={[userLat, userLng]}  icon={userIcon}>
+                  <Popup>📍 Your location</Popup>
+                </Marker>
+
+                {/* Equipment markers */}
+                {filteredEquipment.map((item) => {
+                  const lat = item.location?.coordinates?.[1];
+                  const lng = item.location?.coordinates?.[0];
+                  if (!lat || !lng) return null;
+                  return (
+                    <Marker key={item._id} position={[lat, lng]}>
+                      <Popup>
+                        <p className="font-semibold text-xs">{item.name}</p>
+                        <p className="text-xs text-gray-500">
+                          ₹{item.pricing?.perHour}/hr &middot;{' '}
+                          {(item.distance ?? 0).toFixed(1)} km away
+                        </p>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MapContainer>
             </div>
           </div>
         </section>
       )}
 
+      {/* Image lightbox */}
       {selectedImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4"

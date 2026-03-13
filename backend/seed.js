@@ -154,6 +154,7 @@ const equipmentData = [
     description:
       'Powerful 50 HP tractor suitable for all farming operations including plowing, tilling, and transportation.',
     category: 'Tractor',
+    photos: [{ url: '/uploads/images/tractor1.jpeg', publicId: 'tractor1' }],
     specifications: {
       make: 'John Deere',
       model: '5050D',
@@ -167,6 +168,7 @@ const equipmentData = [
     description:
       'Efficient harvester for wheat, paddy, and other grain crops. Saves time and labor.',
     category: 'Harvester',
+    photos: [{ url: '/uploads/images/harvester1.jpeg', publicId: 'harvester1' }],
     specifications: {
       make: 'VST',
       model: 'Shakti',
@@ -180,6 +182,7 @@ const equipmentData = [
     description:
       'Heavy-duty rotary tiller for soil preparation. Breaks soil clods and mixes crop residue.',
     category: 'Plough',
+    photos: [{ url: '/uploads/images/tiller1.jpeg', publicId: 'tiller1' }],
     specifications: {
       make: 'Mahindra',
       model: 'RT-180',
@@ -192,6 +195,7 @@ const equipmentData = [
     description:
       'Precision seeding equipment for uniform seed distribution and optimal germination.',
     category: 'Seeder',
+    photos: [{ url: '/uploads/images/seeder1.jpeg', publicId: 'seeder1' }],
     specifications: {
       make: 'Fieldking',
       model: 'SD-9',
@@ -204,6 +208,7 @@ const equipmentData = [
     description:
       'High-pressure sprayer for pesticides and fertilizers. Covers large areas efficiently.',
     category: 'Sprayer',
+    photos: [{ url: '/uploads/images/sprayer1.jpeg', publicId: 'sprayer1' }],
     specifications: {
       make: 'Neptune',
       model: 'PS-400',
@@ -216,6 +221,7 @@ const equipmentData = [
     description:
       'Popular 48 HP tractor for ploughing and transport. Good mileage and low maintenance.',
     category: 'Tractor',
+    photos: [{ url: '/uploads/images/tractor3.jpeg', publicId: 'tractor3' }],
     specifications: {
       make: 'Swaraj',
       model: '744 FE',
@@ -229,6 +235,7 @@ const equipmentData = [
     description:
       'Reliable 37 HP tractor for small and medium farms. Suitable for rotavator and trolley.',
     category: 'Tractor',
+    photos: [{ url: '/uploads/images/tractor2.jpeg', publicId: 'tractor2' }],
     specifications: {
       make: 'Mahindra',
       model: '275 DI XP Plus',
@@ -242,6 +249,7 @@ const equipmentData = [
     description:
       'High output thresher for paddy and ragi. Reduces manual effort and improves throughput.',
     category: 'Thresher',
+    photos: [{ url: '/uploads/images/thresher1.jpeg', publicId: 'thresher1' }],
     specifications: {
       make: 'Local',
       model: 'TH-900',
@@ -254,6 +262,7 @@ const equipmentData = [
     description:
       'Reversible mouldboard plough for deep tillage and soil turning. Ideal for field prep.',
     category: 'Plough',
+    photos: [{ url: '/uploads/images/plougher1.jpeg', publicId: 'plougher1' }],
     specifications: {
       make: 'Fieldking',
       model: 'MB-2',
@@ -266,6 +275,7 @@ const equipmentData = [
     description:
       'Wide boom sprayer for uniform pesticide application over large areas.',
     category: 'Sprayer',
+    photos: [{ url: '/uploads/images/sprayer2.jpeg', publicId: 'sprayer2' }],
     specifications: {
       make: 'Aspee',
       model: 'BS-12',
@@ -341,12 +351,7 @@ const seedDatabase = async () => {
           name: equipData.name,
           description: equipData.description,
           category: equipData.category,
-          photos: [
-            {
-              url: `/uploads/placeholder-equipment-${idx + 1}.jpg`,
-              publicId: `placeholder-equipment-${idx + 1}.jpg`,
-            },
-          ],
+          photos:  equipData.photos,
           pricing: {
             perHour: 500 + (idx % 6) * 80,
             perKm: 20 + (idx % 5) * 4,

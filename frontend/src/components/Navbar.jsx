@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FaGlobe } from 'react-icons/fa';
-
+import logo from '../assets/logo.jpeg';
 const Navbar = () => {
   const { t, i18n } = useTranslation();
 
@@ -14,17 +14,17 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="h-16 flex items-center justify-between gap-4">
           {/* Left: logo + title */}
-          <Link to="../assets/logo.jpeg" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-2xl bg-[#2D6A4F] flex items-center justify-center text-white text-sm font-bold">
-              FS
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-bold text-[#1B4332]">Farm Saarthi</p>
-              <p className="text-[10px] text-gray-500">
-               
-              </p>
-            </div>
-          </Link>
+          <Link to="/" className="flex items-center gap-2">
+  <img
+    src={logo}
+    alt="FarmSaarthi Logo"
+    className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1 "
+  />
+  <div className="leading-tight">
+    <p className="text-sm font-bold text-[#1B4332]">Farm Saarthi</p>
+    <p className="text-[10px] text-gray-500">Connecting Farmers & Equipment</p>
+  </div>
+</Link>
 
           {/* Middle: links */}
           <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-gray-600">
