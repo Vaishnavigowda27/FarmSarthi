@@ -9,6 +9,9 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ users: 0, equipments: 0, bookings: 0, conflicts: 0 });
   const [allEquipments, setAllEquipments] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [disputes, setDisputes] = useState([]);
+  const [resolvingId, setResolvingId] = useState(null);
+  const [resolveData, setResolveData] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,33 +32,49 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch admin dashboard (includes stats) and users/equipments
-      const [dashboardRes, usersRes, equipmentsRes, pendingRes] = await Promise.all([
+      const [dashboardRes, usersRes, equipmentsRes, pendingRes, conflictsRes] = await Promise.all([
         axios.get('/api/admin/dashboard'),
         axios.get('/api/admin/users'),
         axios.get('/api/admin/equipments'),
-        axios.get('/api/admin/equipment/pending')
+        axios.get('/api/admin/equipment/pending'),
+        axios.get('/api/admin/conflicts'),
       ]);
-      
+
       const dash = dashboardRes.data.dashboard;
       setAllUsers(usersRes.data.users || []);
-      // Keep all for counts, but show only pending in verification queue
       setAllEquipments(pendingRes.data.equipment || []);
-      
-      // Calculate stats from dashboard
+      setDisputes(conflictsRes.data.conflicts || []);
+
       const stat = dash?.statistics || {};
       setStats({
         users: stat.users?.total ?? usersRes.data.users?.length ?? 0,
         equipments: stat.equipment?.total ?? equipmentsRes.data.equipments?.length ?? 0,
         bookings: stat.bookings?.total ?? 0,
-        conflicts: stat.bookings?.disputed ?? 0
+        conflicts: stat.bookings?.disputed ?? 0,
       });
-      
     } catch (error) {
       console.error('Error loading admin data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResolve = async (bookingId, outcome) => {
+    const resolution = resolveData[bookingId];
+    if (!resolution?.trim()) {
+      alert('Please enter a resolution note before closing the dispute.');
+      return;
+    }
+    try {
+      await axios.put(`/api/admin/conflicts/${bookingId}/resolve`, {
+        resolution,
+        status: outcome, // 'completed' or 'cancelled'
+      });
+      setResolveData((prev) => ({ ...prev, [bookingId]: '' }));
+      setResolvingId(null);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to resolve dispute:', error);
     }
   };
 
@@ -237,33 +256,82 @@ export default function AdminDashboard() {
         {/* Disputes & system health */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-            <h3 className="text-sm font-bold text-gray-900 mb-2">
-              Dispute Center
-            </h3>
-            <p className="text-[11px] text-gray-600 mb-2">
-              Track and resolve payment or service disputes raised by users.
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Dispute Center</h3>
+            <p className="text-[11px] text-gray-500 mb-3">
+              Breakdowns, weather issues, and service complaints raised by farmers.
             </p>
-            <div className="space-y-2 text-[11px]">
-              {[1, 2].map((id) => (
-                <div
-                  key={id}
-                  className="rounded-2xl border border-gray-100 bg-amber-50 p-2"
-                >
-                  <p className="font-semibold text-amber-900">
-                    Dispute #{id} • Payment Issue
-                  </p>
-                  <p className="text-amber-800">
-                    Farmer claims over‑billing. Awaiting evidence.
-                  </p>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {disputes.length === 0 ? (
+                <p className="text-[11px] text-gray-400 text-center py-4">No open disputes. ✓</p>
+              ) : (
+                disputes.map((d) => (
+                  <div key={d._id} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-[11px] font-bold text-amber-900">
+                          {d.equipment?.name || 'Equipment'}
+                        </p>
+                        <p className="text-[10px] text-amber-800">
+                          Farmer: {d.farmer?.name} • {d.farmer?.phone}
+                        </p>
+                        <p className="text-[10px] text-amber-800">
+                          Owner: {d.renter?.name} • {d.renter?.phone}
+                        </p>
+                        <p className="text-[10px] text-amber-700 mt-1 italic">
+                          "{d.conflictResolution?.conflictReason}"
+                        </p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-semibold shrink-0">
+                        {new Date(d.createdAt).toLocaleDateString('en-IN')}
+                      </span>
+                    </div>
+
+                    {resolvingId === d._id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          rows={2}
+                          placeholder="Write resolution note…"
+                          value={resolveData[d._id] || ''}
+                          onChange={(e) => setResolveData((prev) => ({ ...prev, [d._id]: e.target.value }))}
+                          className="w-full text-[11px] rounded-xl border border-amber-300 px-2 py-1.5 outline-none bg-white"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleResolve(d._id, 'completed')}
+                            className="flex-1 text-[10px] font-semibold py-1 rounded-full bg-emerald-600 text-white"
+                          >
+                            Mark Completed
+                          </button>
+                          <button
+                            onClick={() => handleResolve(d._id, 'cancelled')}
+                            className="flex-1 text-[10px] font-semibold py-1 rounded-full bg-red-100 text-red-700"
+                          >
+                            Cancel Booking
+                          </button>
+                          <button
+                            onClick={() => setResolvingId(null)}
+                            className="text-[10px] font-semibold py-1 px-2 rounded-full border border-gray-200 text-gray-600"
+                          >
+                            Back
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setResolvingId(d._id)}
+                        className="w-full text-[10px] font-semibold py-1.5 rounded-full bg-amber-500 text-white"
+                      >
+                        Resolve Dispute
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-            <h3 className="text-sm font-bold text-gray-900 mb-2">
-              System Health
-            </h3>
+            <h3 className="text-sm font-bold text-gray-900 mb-2">System Health</h3>
             <p className="text-[11px] text-gray-600 mb-1">
               Server status: <span className="font-semibold text-emerald-700">Operational</span>
             </p>

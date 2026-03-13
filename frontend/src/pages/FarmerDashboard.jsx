@@ -19,6 +19,10 @@ export default function FarmerDashboard() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeBooking, setDisputeBooking] = useState(null);
+  const [disputeData, setDisputeData] = useState({ reason: 'equipment_breakdown', description: '' });
+  const [disputeLoading, setDisputeLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -80,6 +84,33 @@ export default function FarmerDashboard() {
   const openReviewModal = (booking) => {
     setSelectedBooking(booking);
     setShowReviewModal(true);
+  };
+
+  const openDisputeModal = (booking) => {
+    setDisputeBooking(booking);
+    setDisputeData({ reason: 'equipment_breakdown', description: '' });
+    setShowDisputeModal(true);
+  };
+
+  const handleSubmitDispute = async () => {
+    if (!disputeData.description.trim()) {
+      showToast('Please describe the issue', 'error');
+      return;
+    }
+    try {
+      setDisputeLoading(true);
+      await axios.put(`/api/bookings/${disputeBooking._id}/dispute`, {
+        reason: disputeData.reason,
+        description: disputeData.description,
+      });
+      showToast('Dispute raised. Support will respond within 24 hours.', 'success');
+      setShowDisputeModal(false);
+      fetchMyBookings();
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Failed to raise dispute', 'error');
+    } finally {
+      setDisputeLoading(false);
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -301,6 +332,22 @@ export default function FarmerDashboard() {
                     </button>
                   )}
 
+                  {(booking.status === 'confirmed' || booking.status === 'ongoing') && (
+                    <button
+                      type="button"
+                      onClick={() => openDisputeModal(booking)}
+                      className="block w-full rounded-full border border-amber-300 text-amber-700 bg-amber-50 text-[11px] font-semibold px-3 py-1"
+                    >
+                      ⚠ Raise Dispute
+                    </button>
+                  )}
+
+                  {booking.status === 'disputed' && (
+                    <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 rounded-full px-3 py-1 text-center">
+                      🔄 Under Review
+                    </div>
+                  )}
+
                   {booking.status === 'completed' && !booking.hasReview && (
                     <button
                       type="button"
@@ -400,7 +447,74 @@ export default function FarmerDashboard() {
           </div>
         </div>
       )}
+      {/* Dispute modal */}
+      {showDisputeModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Raise a Dispute</h3>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  {disputeBooking?.equipment?.name} • {new Date(disputeBooking?.bookingDate).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-[11px] text-amber-800 space-y-1">
+              <p className="font-semibold">What happens next?</p>
+              <p>• The equipment owner will be notified immediately</p>
+              <p>• Our support team will review your case within 24 hours</p>
+              <p>• Booking is paused and marked "Under Review" until resolved</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Issue Type</label>
+              <select
+                value={disputeData.reason}
+                onChange={(e) => setDisputeData({ ...disputeData, reason: e.target.value })}
+                className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-sm outline-none"
+              >
+                <option value="equipment_breakdown">Equipment Breakdown</option>
+                <option value="weather_condition">Unsuitable Weather Conditions</option>
+                <option value="no_show">Equipment / Operator Did Not Show Up</option>
+                <option value="quality_issue">Equipment Not as Described</option>
+                <option value="safety_concern">Safety Concern</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Describe the Issue</label>
+              <textarea
+                value={disputeData.description}
+                onChange={(e) => setDisputeData({ ...disputeData, description: e.target.value })}
+                rows={4}
+                className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                placeholder="Describe what happened in detail so our support team can assist you quickly…"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowDisputeModal(false)}
+                className="flex-1 rounded-2xl border border-gray-200 text-xs font-semibold text-gray-700 py-2"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitDispute}
+                disabled={disputeLoading}
+                className="flex-1 rounded-2xl bg-amber-500 text-white text-xs font-semibold py-2 disabled:opacity-50"
+              >
+                {disputeLoading ? 'Submitting…' : 'Submit Dispute'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

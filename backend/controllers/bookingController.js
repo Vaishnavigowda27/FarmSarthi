@@ -439,8 +439,70 @@ export const updateBookingStatus = async (req, res, next) => {
 };
 
 /**
- * Helper function to calculate duration in hours
+ * @desc    Raise a dispute on a booking (breakdown / weather / service issue)
+ * @route   PUT /api/bookings/:id/dispute
+ * @access  Private (Farmer or Renter)
  */
+export const raiseDispute = async (req, res, next) => {
+  try {
+    const { reason, description } = req.body || {};
+
+    if (!reason || !description) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a reason and description for the dispute',
+      });
+    }
+
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    // Only farmer or renter of this booking can raise dispute
+    if (
+      booking.farmer.toString() !== req.user.id &&
+      booking.renter.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Can only dispute confirmed or ongoing bookings
+    if (!['confirmed', 'ongoing'].includes(booking.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Disputes can only be raised on confirmed or ongoing bookings',
+      });
+    }
+
+    // Already disputed
+    if (booking.status === 'disputed') {
+      return res.status(400).json({ success: false, message: 'Dispute already raised for this booking' });
+    }
+
+    booking.status = 'disputed';
+    booking.conflictResolution = {
+      hasConflict: true,
+      conflictReason: `[${reason}] ${description}`,
+      resolvedBy: null,
+      resolvedAt: null,
+      resolution: null,
+    };
+
+    await booking.save();
+
+    await booking.populate('equipment farmer renter');
+
+    res.status(200).json({
+      success: true,
+      message: 'Dispute raised successfully. Our support team will assist within 24 hours.',
+      booking,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 function calculateDuration(startTime, endTime) {
   const [startHour, startMin] = startTime.split(':').map(Number);
   const [endHour, endMin] = endTime.split(':').map(Number);

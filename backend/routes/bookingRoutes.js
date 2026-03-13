@@ -6,6 +6,7 @@ import {
   getBookingById,
   cancelBooking,
   updateBookingStatus,
+  raiseDispute,
 } from '../controllers/bookingController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -18,5 +19,6 @@ router.get('/', protect, getAllBookings);
 router.get('/:id', protect, getBookingById);
 router.put('/:id/cancel', protect, cancelBooking);
 router.put('/:id/status', protect, authorize('renter'), updateBookingStatus);
+router.put('/:id/dispute', protect, raiseDispute);
 
 export default router;
