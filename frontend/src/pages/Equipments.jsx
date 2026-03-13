@@ -201,6 +201,9 @@ const Equipment = () => {
                       <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                         {item.name}
                       </h3>
+                      <p className="text-xs text-[#2D6A4F] font-medium mt-0.5">
+   {item.owner?.name || 'Unknown Owner'}
+</p>
                       <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
                         {item.description}
                       </p>

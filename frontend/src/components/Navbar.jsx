@@ -26,18 +26,7 @@ const Navbar = () => {
   </div>
 </Link>
 
-          {/* Middle: links */}
-          <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-gray-600">
-            <Link to="/#services" className="hover:text-[#1B4332]">
-              Services
-            </Link>
-            <Link to="/#about" className="hover:text-[#1B4332]">
-              About us
-            </Link>
-            <Link to="/#contact" className="hover:text-[#1B4332]">
-              Contact us
-            </Link>
-          </div>
+          
 
           {/* Right: language toggle */}
           <button
