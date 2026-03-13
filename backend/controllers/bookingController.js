@@ -321,7 +321,7 @@ export const getBookingById = async (req, res, next) => {
  */
 export const cancelBooking = async (req, res, next) => {
   try {
-    const { reason } = req.body;
+    const { reason } = req.body || {};
 
     let booking = await Booking.findById(req.params.id);
 

@@ -11,12 +11,13 @@ import { sendProximityNotification, sendEquipmentArrivalNotification } from '../
  */
 export const addEquipment = async (req, res, next) => {
   try {
-    let { name, description, category, pricing, location, specifications } = req.body;
+    let { name, description, category, pricing, location, specifications, totalUnits } = req.body;
 
     // Parse if sent as JSON strings (from FormData)
     if (typeof pricing === 'string') pricing = JSON.parse(pricing);
     if (typeof location === 'string') location = JSON.parse(location);
     if (typeof specifications === 'string' && specifications) specifications = JSON.parse(specifications);
+    const units = Math.max(1, parseInt(totalUnits) || 1);
 
     // Validate required fields
     if (!name || !description || !category) {
@@ -67,6 +68,7 @@ export const addEquipment = async (req, res, next) => {
       description,
       category,
       photos,
+      totalUnits: units,
       pricing: {
         perHour,
         perKm,
@@ -197,13 +199,36 @@ export const getAllEquipment = async (req, res, next) => {
 
     const paginatedEquipment = equipment.slice(startIndex, endIndex);
 
+    // Compute availableUnits for today for each equipment
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const equipmentWithUnits = await Promise.all(
+      paginatedEquipment.map(async (eq) => {
+        const activeBookingsToday = await Booking.countDocuments({
+          equipment: eq._id,
+          bookingDate: { $gte: today, $lt: tomorrow },
+          status: { $in: ['hold', 'confirmed', 'ongoing'] },
+        });
+        const totalUnits = eq.totalUnits || 1;
+        const availableUnits = Math.max(0, totalUnits - activeBookingsToday);
+        // eq may be a Mongoose doc or a plain object depending on the path taken
+        const obj = typeof eq.toObject === 'function' ? eq.toObject() : { ...eq };
+        obj.totalUnits = totalUnits;
+        obj.availableUnits = availableUnits;
+        return obj;
+      })
+    );
+
     res.status(200).json({
       success: true,
-      count: paginatedEquipment.length,
+      count: equipmentWithUnits.length,
       total,
       page: parseInt(page),
       pages: Math.ceil(total / parseInt(limit)),
-      equipment: paginatedEquipment,
+      equipment: equipmentWithUnits,
     });
   } catch (error) {
     next(error);

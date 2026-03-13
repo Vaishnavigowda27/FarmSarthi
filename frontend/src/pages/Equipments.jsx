@@ -222,24 +222,36 @@ const Equipment = () => {
                         ₹{item.pricing?.perKm ?? item.pricePerKm ?? 0}/km
                       </span>
                     </div>
-                    {item.isActive ? (
-                      <span className="inline-flex items-center text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        ● Available
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
-                        ○ Not available
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {/* Available units badge */}
+                      {item.totalUnits > 1 && (
+                        <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                          item.availableUnits > 0
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'bg-red-50 text-red-600'
+                        }`}>
+                          {item.availableUnits}/{item.totalUnits} units free
+                        </span>
+                      )}
+                      {item.isActive && item.availableUnits !== 0 ? (
+                        <span className="inline-flex items-center text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          ● Available
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                          ○ Not available
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-2 flex justify-end">
                     <button
                       onClick={() => navigate(`/checkout/${item._id}`)}
-                      disabled={!item.isActive}
+                      disabled={!item.isActive || item.availableUnits === 0}
                       className="px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold bg-farm-primary text-white disabled:bg-gray-300"
                     >
-                      {item.isActive ? 'Book Now (2% Service Charge)' : 'Unavailable'}
+                      {!item.isActive ? 'Unavailable' : item.availableUnits === 0 ? 'All Units Booked Today' : 'Book Now (2% Service Charge)'}
                     </button>
                   </div>
                 </div>

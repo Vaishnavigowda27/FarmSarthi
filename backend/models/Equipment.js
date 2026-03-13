@@ -51,6 +51,11 @@ const equipmentSchema = new mongoose.Schema(
       city: String,
       state: String,
     },
+    totalUnits: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
     availability: {
       isAvailable: {
         type: Boolean,
