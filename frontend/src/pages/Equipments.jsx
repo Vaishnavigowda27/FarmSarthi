@@ -173,7 +173,7 @@ const Equipment = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-4xl">🚜</span>
+                    <span className="text-4xl"></span>
                   )}
                 </div>
                 <div className="flex-1 p-4 space-y-2">
@@ -217,7 +217,7 @@ const Equipment = () => {
                       disabled={!item.isActive}
                       className="px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold bg-farm-primary text-white disabled:bg-gray-300"
                     >
-                      {item.isActive ? 'Book Now (10% Advance)' : 'Unavailable'}
+                      {item.isActive ? 'Book Now  ' : 'Unavailable'}
                     </button>
                   </div>
                 </div>
