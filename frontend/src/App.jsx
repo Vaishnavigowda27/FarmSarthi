@@ -12,6 +12,7 @@ import RenterDashboard from './pages/RenterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Checkout from './pages/Checkout';
 import Payment from './pages/Payment';
+import SettingsPage from './pages/Settings';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -82,6 +83,9 @@ function AppContent() {
             path="/admin"
             element={<AdminDashboard />}
           />
+
+          {/* Settings */}
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
         {/* Fallback */}

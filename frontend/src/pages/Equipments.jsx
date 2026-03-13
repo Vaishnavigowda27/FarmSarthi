@@ -37,6 +37,7 @@ const Equipment = () => {
           longitude: userLng,
           radius: radius,
           isAvailable: true,
+          verifiedOnly: true,
         },
       });
 
@@ -217,7 +218,7 @@ const Equipment = () => {
                       disabled={!item.isActive}
                       className="px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold bg-farm-primary text-white disabled:bg-gray-300"
                     >
-                      {item.isActive ? 'Book Now  ' : 'Unavailable'}
+                      {item.isActive ? 'Book Now (2% Service Charge)' : 'Unavailable'}
                     </button>
                   </div>
                 </div>

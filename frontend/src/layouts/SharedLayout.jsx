@@ -12,18 +12,20 @@ const navItemsByRole = (role) => {
   if (role === 'renter') {
     return [
       { label: 'Dashboard', to: '/renter', icon: LayoutDashboard },
+      { label: 'Settings', to: '/settings', icon: Settings },
     ];
   }
   if (role === 'farmer') {
     return [
       { label: 'Search', to: '/equipment', icon: Tractor },
       { label: 'My Bookings', to: '/farmer', icon: LayoutDashboard },
+      { label: 'Settings', to: '/settings', icon: Settings },
     ];
   }
   if (role === 'admin') {
     return [
       { label: 'Admin Dashboard', to: '/admin', icon: LayoutDashboard },
-      { label: 'Settings', to: '/admin/settings', icon: Settings },
+      { label: 'Settings', to: '/settings', icon: Settings },
     ];
   }
   return [];
@@ -97,7 +99,7 @@ export default function SharedLayout() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col">
-        <Navbar />
+       
         <main className="flex-1 px-4 md:px-6 lg:px-8 py-6">
           <div className="max-w-7xl mx-auto space-y-6">
             <Outlet />

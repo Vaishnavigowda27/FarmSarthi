@@ -1,11 +1,18 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-
+import tractorImg from '../assets/agro.jpeg';
+import calendarImg from '../assets/assurnace.jpeg';
+import paymentImg from '../assets/payment.jpeg';
+import Footer from '../components/Footer';
+import Navbar from '../components/Navbar';
 export default function Home() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-[#F8F9FA]" >  
+    <Navbar />
+    <div className ="flex items-center justify-center px-4 py-10">
+         
       <div className="max-w-5xl w-full space-y-8">
         {/* Title + CTA */}
         <div className="text-center space-y-4">
@@ -32,68 +39,39 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Feature cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search Equipment */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col items-start">
-            <div className="w-full flex justify-center mb-3">
-              <div className="h-20 w-24 rounded-2xl bg-gradient-to-br from-[#74C69D]/30 to-white border border-[#74C69D]/40 flex items-center justify-center">
-                {/* Simple tractor over map illustration using emoji / shapes */}
-                <div className="text-3xl">🚜</div>
-              </div>
-            </div>
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
-              {t('home.searchTitle') || 'Search Equipment'}
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-600 mb-3">
-              {t('home.searchDesc') || 'Find equipment near your farm.'}
-            </p>
-            <span className="mt-auto inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-[11px] font-medium text-gray-700">
-              5.2 km
-            </span>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">  {/* gap-4 → gap-8 */}
 
-          {/* Book Slots */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col items-start">
-            <div className="w-full flex justify-center mb-3">
-              <div className="h-20 w-24 rounded-2xl bg-gradient-to-br from-[#74C69D]/30 to-white border border-[#74C69D]/40 flex items-center justify-center">
-                {/* Calendar illustration */}
-                <div className="text-3xl">📅</div>
-              </div>
-            </div>
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
-              {t('home.bookTitle') || 'Book Slots'}
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-600 mb-3">
-              {t('home.bookDesc') ||
-                'Reserve equipment for your schedule with clear time slots.'}
-            </p>
-            <span className="mt-auto inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-[11px] font-medium text-gray-700">
-              Flexible timings
-            </span>
-          </div>
+  {/* Search Equipment */}
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col min-h-[320px]">
+    <div className="h-48 w-full rounded-2xl overflow-hidden mb-4">
+      <img src={tractorImg} alt="Search Equipment" className="h-full w-full object-cover" />
+    </div>
+    <h3 className="text-base font-semibold text-gray-900 mb-1">Search Equipment</h3>
+    <p className="text-sm text-gray-600">Find equipment near your farm.</p>
+  </div>
 
-          {/* Pay Securely */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col items-start">
-            <div className="w-full flex justify-center mb-3">
-              <div className="h-20 w-24 rounded-2xl bg-gradient-to-br from-[#74C69D]/30 to-white border border-[#74C69D]/40 flex items-center justify-center">
-                {/* Wallet + QR illustration */}
-                <div className="text-3xl">💳</div>
-              </div>
-            </div>
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
-              {t('home.payTitle') || 'Pay Securely'}
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-600 mb-3">
-              {t('home.payDesc') ||
-                'Advance payment with Razorpay and UPI for safe transactions.'}
-            </p>
-            <span className="mt-auto inline-flex items-center px-3 py-1 rounded-full bg-[#74C69D]/15 text-[11px] font-semibold text-[#1B4332]">
-              10% Advance
-            </span>
-          </div>
-        </div>
+  {/* Book Slots */}
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col min-h-[320px]">
+    <div className="h-48 w-full rounded-2xl overflow-hidden mb-4">
+      <img src={calendarImg} alt="Book Slots" className="h-full w-full object-cover" />
+    </div>
+    <h3 className="text-base font-semibold text-gray-900 mb-1">Book Slots</h3>
+    <p className="text-sm text-gray-600">Reserve equipment for your schedule.</p>
+  </div>
+
+  {/* Pay Securely */}
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col min-h-[320px]">
+    <div className="h-48 w-full rounded-2xl overflow-hidden mb-4">
+      <img src={paymentImg} alt="Pay Securely" className="h-full w-full object-cover" />
+    </div>
+    <h3 className="text-base font-semibold text-gray-900 mb-1">Pay Securely</h3>
+    <p className="text-sm text-gray-600">Advance payment with Razorpay and UPI.</p>
+  </div>
+
+</div>
       </div>
+    </div>
+    <Footer /> 
     </div>
   );
 }

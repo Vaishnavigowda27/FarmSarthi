@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getUserProfile,
   updateUserProfile,
+  deleteMyAccount,
   getFarmerDashboard,
   getRenterDashboard,
   getAllUsers,
@@ -16,6 +17,7 @@ router.use(protect);
 
 router.get('/profile', getUserProfile);
 router.put('/profile', updateUserProfile);
+router.delete('/me', deleteMyAccount);
 
 router.get('/farmer/dashboard', authorize('farmer'), getFarmerDashboard);
 router.get('/renter/dashboard', authorize('renter'), getRenterDashboard);

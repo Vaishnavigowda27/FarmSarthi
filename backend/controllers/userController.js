@@ -247,6 +247,24 @@ export const toggleUserStatus = async (req, res, next) => {
 };
 
 /**
+ * @desc    Deactivate own account (soft delete)
+ * @route   DELETE /api/users/me
+ * @access  Private
+ */
+export const deleteMyAccount = async (req, res, next) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { isActive: false }, { new: true });
+
+    res.status(200).json({
+      success: true,
+      message: 'Account deactivated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Register/update an FCM token for push notifications
  * @route   POST /api/users/fcm-token
  * @access  Private

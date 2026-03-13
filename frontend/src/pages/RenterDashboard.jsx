@@ -133,6 +133,34 @@ export default function RenterDashboard() {
     }
   };
 
+  const toggleAvailability = async (eq) => {
+    try {
+      await axios.put(`/api/equipment/${eq._id}`, {
+        availability: {
+          ...(eq.availability || {}),
+          isAvailable: !eq.availability?.isAvailable,
+        },
+      });
+      showToast(eq.availability?.isAvailable ? 'Equipment paused' : 'Equipment resumed', 'success');
+      fetchMyEquipments();
+    } catch (error) {
+      console.error('Error updating availability:', error);
+      showToast('Failed to update availability', 'error');
+    }
+  };
+
+  const deleteListing = async (eq) => {
+    if (!confirm('Delete this equipment listing?')) return;
+    try {
+      await axios.delete(`/api/equipment/${eq._id}`);
+      showToast('Equipment deleted', 'success');
+      fetchMyEquipments();
+    } catch (error) {
+      console.error('Error deleting equipment:', error);
+      showToast('Failed to delete equipment', 'error');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -430,6 +458,22 @@ export default function RenterDashboard() {
                           ₹{eq.pricing?.perHour || 0}/hr • ₹
                           {eq.pricing?.perKm || 0}/km
                         </p>
+                        <div className="pt-2 flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleAvailability(eq)}
+                            className="px-3 py-1 rounded-full text-[11px] font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50"
+                          >
+                            {eq.availability?.isAvailable ? 'Pause' : 'Resume'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteListing(eq)}
+                            className="px-3 py-1 rounded-full text-[11px] font-semibold border border-red-200 text-red-700 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))

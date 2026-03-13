@@ -15,6 +15,7 @@ const Checkout = () => {
   const { user } = useAuth();
 
   const [equipment, setEquipment] = useState(null);
+  const [moreFromOwner, setMoreFromOwner] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -69,7 +70,23 @@ const Checkout = () => {
   const loadEquipment = async () => {
     try {
       const response = await axios.get(`/api/equipment/${equipmentId}`);
-      setEquipment(response.data.equipment);
+      const eq = response.data.equipment;
+      setEquipment(eq);
+
+      // Fetch more equipment from same owner
+      const ownerId = eq?.owner?._id;
+      if (ownerId) {
+        const moreRes = await axios.get('/api/equipment', {
+          params: {
+            owner: ownerId,
+            isAvailable: true,
+          },
+        });
+        const list = moreRes.data.equipment || [];
+        setMoreFromOwner(list.filter((e) => e._id !== eq._id));
+      } else {
+        setMoreFromOwner([]);
+      }
     } catch (error) {
       showToast('Failed to load equipment', 'error');
       navigate('/equipment');
@@ -234,6 +251,58 @@ const Checkout = () => {
                 </p>
               </div>
             </div>
+
+            {moreFromOwner.length > 0 && (
+              <div className="pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-gray-900">
+                    More from {equipment?.owner?.name || 'this owner'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/equipment')}
+                    className="text-[11px] text-farm-primary font-semibold hover:underline"
+                  >
+                    View all
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {moreFromOwner.slice(0, 4).map((item) => {
+                    const baseUrl = (
+                      import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+                    ).replace(/\/api$/, '');
+                    return (
+                      <button
+                        key={item._id}
+                        type="button"
+                        onClick={() => navigate(`/checkout/${item._id}`)}
+                        className="flex items-center gap-3 rounded-2xl border border-gray-100 hover:border-farm-primary/50 bg-white p-2 text-left"
+                      >
+                        <div className="h-12 w-16 rounded-xl bg-farm-primary/15 overflow-hidden flex items-center justify-center flex-shrink-0">
+                          {item.photos?.[0]?.url ? (
+                            <img
+                              src={`${baseUrl}${item.photos[0].url}`}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xl">🚜</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 line-clamp-1">
+                            {item.name}
+                          </p>
+                          <p className="text-[11px] text-gray-500">
+                            ₹{item.pricing?.perHour ?? 0}/hr • ₹{item.pricing?.perKm ?? 0}/km
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 text-xs space-y-2">
               <div className="flex justify-between">
@@ -412,8 +481,7 @@ const Checkout = () => {
               I have paid with UPI
             </button>
             <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-[11px] text-amber-800">
-              <strong>Note:</strong> The 10% advance payment is non‑refundable in
-              case of cancellation.
+              <strong>Note:</strong> The 2% service charge is non‑refundable in case of cancellation.
             </div>
           </div>
         </section>

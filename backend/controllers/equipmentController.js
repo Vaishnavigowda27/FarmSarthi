@@ -135,6 +135,7 @@ export const getAllEquipment = async (req, res, next) => {
       maxPrice,
       isAvailable,
       owner,
+      verifiedOnly,
       page = 1,
       limit = 10,
     } = req.query;
@@ -154,6 +155,11 @@ export const getAllEquipment = async (req, res, next) => {
     // Filter by availability
     if (isAvailable === 'true') {
       query['availability.isAvailable'] = true;
+    }
+
+    // Filter by verification status (used for farmer listing)
+    if (verifiedOnly === 'true') {
+      query.verificationStatus = 'verified';
     }
 
     // Get equipment

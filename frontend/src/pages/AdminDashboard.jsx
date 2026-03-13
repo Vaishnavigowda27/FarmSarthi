@@ -31,15 +31,17 @@ export default function AdminDashboard() {
       setLoading(true);
       
       // Fetch admin dashboard (includes stats) and users/equipments
-      const [dashboardRes, usersRes, equipmentsRes] = await Promise.all([
+      const [dashboardRes, usersRes, equipmentsRes, pendingRes] = await Promise.all([
         axios.get('/api/admin/dashboard'),
         axios.get('/api/admin/users'),
-        axios.get('/api/admin/equipments')
+        axios.get('/api/admin/equipments'),
+        axios.get('/api/admin/equipment/pending')
       ]);
       
       const dash = dashboardRes.data.dashboard;
       setAllUsers(usersRes.data.users || []);
-      setAllEquipments(equipmentsRes.data.equipments || []);
+      // Keep all for counts, but show only pending in verification queue
+      setAllEquipments(pendingRes.data.equipment || []);
       
       // Calculate stats from dashboard
       const stat = dash?.statistics || {};
@@ -54,6 +56,15 @@ export default function AdminDashboard() {
       console.error('Error loading admin data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setVerificationStatus = async (equipmentId, status) => {
+    try {
+      await axios.put(`/api/admin/equipment/${equipmentId}/verify`, { status });
+      await loadData();
+    } catch (error) {
+      console.error('Failed to update verification status:', error);
     }
   };
 
@@ -200,10 +211,18 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <button className="mr-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-farm-primary text-white">
+                        <button
+                          type="button"
+                          onClick={() => setVerificationStatus(eq._id, 'verified')}
+                          className="mr-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-farm-primary text-white"
+                        >
                           Approve
                         </button>
-                        <button className="px-2 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-700">
+                        <button
+                          type="button"
+                          onClick={() => setVerificationStatus(eq._id, 'rejected')}
+                          className="px-2 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-700"
+                        >
                           Reject
                         </button>
                       </td>

@@ -72,6 +72,80 @@ const mysoreLocations = [
     state: 'Karnataka',
     pincode: '570023',
   },
+  // ~10-15 km ring
+  {
+    name: 'Srirampura',
+    coordinates: [76.6945, 12.2906],
+    address: 'Srirampura, Mysore',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '570008',
+  },
+  {
+    name: 'Nazarbad',
+    coordinates: [76.6578, 12.2964],
+    address: 'Nazarbad, Mysore',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '570010',
+  },
+  {
+    name: 'Hootagalli',
+    coordinates: [76.5967, 12.3479],
+    address: 'Hootagalli, Mysore',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '570018',
+  },
+  {
+    name: 'Bogadi',
+    coordinates: [76.5868, 12.3077],
+    address: 'Bogadi, Mysore',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '570026',
+  },
+  {
+    name: 'Kadakola',
+    coordinates: [76.7604, 12.2136],
+    address: 'Kadakola, Mysore (outskirts)',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '571311',
+  },
+  // ~20-25 km ring
+  {
+    name: 'Nanjangud Road',
+    coordinates: [76.7002, 12.2118],
+    address: 'Nanjangud Road, Mysore (towards Nanjangud)',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '570028',
+  },
+  {
+    name: 'Varuna',
+    coordinates: [76.5756, 12.1571],
+    address: 'Varuna, Mysore (rural belt)',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '571311',
+  },
+  {
+    name: 'T Narasipura Road',
+    coordinates: [76.4837, 12.2662],
+    address: 'T Narasipura Road, Mysore (outskirts)',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '570027',
+  },
+  {
+    name: 'Belagola',
+    coordinates: [76.7009, 12.3624],
+    address: 'Belagola, Mysore (north side)',
+    city: 'Mysore',
+    state: 'Karnataka',
+    pincode: '571606',
+  },
 ];
 
 const equipmentData = [
@@ -137,6 +211,68 @@ const equipmentData = [
       capacity: '400 liters',
     },
   },
+  {
+    name: 'Swaraj 744 FE Tractor',
+    description:
+      'Popular 48 HP tractor for ploughing and transport. Good mileage and low maintenance.',
+    category: 'Tractor',
+    specifications: {
+      make: 'Swaraj',
+      model: '744 FE',
+      year: 2020,
+      horsepower: 48,
+      capacity: '1500 kg',
+    },
+  },
+  {
+    name: 'Mahindra 275 DI XP Plus',
+    description:
+      'Reliable 37 HP tractor for small and medium farms. Suitable for rotavator and trolley.',
+    category: 'Tractor',
+    specifications: {
+      make: 'Mahindra',
+      model: '275 DI XP Plus',
+      year: 2021,
+      horsepower: 37,
+      capacity: '1200 kg',
+    },
+  },
+  {
+    name: 'Thresher Machine',
+    description:
+      'High output thresher for paddy and ragi. Reduces manual effort and improves throughput.',
+    category: 'Thresher',
+    specifications: {
+      make: 'Local',
+      model: 'TH-900',
+      year: 2022,
+      capacity: '900 kg/hour',
+    },
+  },
+  {
+    name: 'Reversible MB Plough',
+    description:
+      'Reversible mouldboard plough for deep tillage and soil turning. Ideal for field prep.',
+    category: 'Plough',
+    specifications: {
+      make: 'Fieldking',
+      model: 'MB-2',
+      year: 2023,
+      capacity: '2 bottom',
+    },
+  },
+  {
+    name: 'Boom Sprayer',
+    description:
+      'Wide boom sprayer for uniform pesticide application over large areas.',
+    category: 'Sprayer',
+    specifications: {
+      make: 'Aspee',
+      model: 'BS-12',
+      year: 2022,
+      capacity: '12 m boom',
+    },
+  },
 ];
 
 const seedDatabase = async () => {
@@ -149,9 +285,9 @@ const seedDatabase = async () => {
 
     console.log('Existing data cleared');
 
-    // Create farmers
+    // Create farmers (spread across core Mysore areas)
     const farmers = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       const location = mysoreLocations[i];
       const farmer = await User.create({
         name: `Farmer ${i + 1}`,
@@ -172,12 +308,15 @@ const seedDatabase = async () => {
 
     console.log(`${farmers.length} farmers created`);
 
-    // Create renters with equipment
+    // Create renters with multiple equipment (owners have many listings)
     const renters = [];
-    for (let i = 0; i < 4; i++) {
-      const location = mysoreLocations[i + 4];
+    const renterCount = 5;
+    const equipmentPerRenter = 2;
+
+    for (let i = 0; i < renterCount; i++) {
+      const location = mysoreLocations[i + 6];
       const renter = await User.create({
-        name: `Renter ${i + 1}`,
+        name: `Agro Rentals ${i + 1}`,
         phone: `910000000${i}`,
         role: 'renter',
         location: {
@@ -192,39 +331,44 @@ const seedDatabase = async () => {
       });
       renters.push(renter);
 
-      // Create equipment for each renter
-      const equipData = equipmentData[i] || equipmentData[0];
-      const equipment = await Equipment.create({
-        owner: renter._id,
-        name: equipData.name,
-        description: equipData.description,
-        category: equipData.category,
-        photos: [
-          {
-            url: `/uploads/placeholder-equipment-${i + 1}.jpg`,
-            publicId: `placeholder-equipment-${i + 1}.jpg`,
-          },
-        ],
-        pricing: {
-          perHour: 500 + i * 100,
-          perKm: 20 + i * 5,
-        },
-        location: {
-          type: 'Point',
-          coordinates: location.coordinates,
-          address: location.address,
-          city: location.city,
-          state: location.state,
-        },
-        specifications: equipData.specifications,
-        availability: {
-          isAvailable: true,
-          schedule: [],
-        },
-        verificationStatus: 'verified',
-      });
+      for (let j = 0; j < equipmentPerRenter; j++) {
+        const idx = i * equipmentPerRenter + j;
+        const equipData = equipmentData[idx] || equipmentData[idx % equipmentData.length];
+        const equipLocation = mysoreLocations[(i + 6 + idx) % mysoreLocations.length];
 
-      renter.equipmentListed.push(equipment._id);
+        const equipment = await Equipment.create({
+          owner: renter._id,
+          name: equipData.name,
+          description: equipData.description,
+          category: equipData.category,
+          photos: [
+            {
+              url: `/uploads/placeholder-equipment-${idx + 1}.jpg`,
+              publicId: `placeholder-equipment-${idx + 1}.jpg`,
+            },
+          ],
+          pricing: {
+            perHour: 500 + (idx % 6) * 80,
+            perKm: 20 + (idx % 5) * 4,
+          },
+          location: {
+            type: 'Point',
+            coordinates: equipLocation.coordinates,
+            address: equipLocation.address,
+            city: equipLocation.city,
+            state: equipLocation.state,
+          },
+          specifications: equipData.specifications,
+          availability: {
+            isAvailable: true,
+            schedule: [],
+          },
+          // Seed as verified so farmers can immediately test radius filters.
+          verificationStatus: 'verified',
+        });
+
+        renter.equipmentListed.push(equipment._id);
+      }
       await renter.save();
     }
 
