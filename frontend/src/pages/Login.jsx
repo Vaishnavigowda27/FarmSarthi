@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { showToast } from '../utils/helpers';
+import logo from '../assets/logo.jpeg';
+
 
 const Login = () => {
   const { t } = useTranslation();
@@ -72,15 +74,13 @@ const Login = () => {
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-6 py-8 sm:px-8 sm:py-10">
 
           {/* Branding inside card */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-9 w-9 rounded-2xl bg-[#1B4332] flex items-center justify-center text-white text-sm font-bold">
-              FS
-            </div>
-            <div>
-              <p className="text-base font-bold text-[#1B4332]">FarmSaarthi</p>
-              <p className="text-[11px] text-gray-500">Connecting Farmers &amp; Equipment</p>
-            </div>
-          </div>
+          <Link to="/" className="flex items-center gap-2 mb-6">
+  <img src={logo} alt="FarmSaarthi Logo" className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1" />
+  <div>
+    <p className="text-base font-bold text-[#1B4332]">Farm Saarthi</p>
+    <p className="text-[11px] text-gray-500">Connecting Farmers &amp; Equipment</p>
+  </div>
+</Link>
 
           <h1 className="text-xl font-bold text-[#1B4332] mb-1">Welcome back</h1>
           <p className="text-xs text-gray-500 mb-6">

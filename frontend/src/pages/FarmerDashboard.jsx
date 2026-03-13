@@ -62,7 +62,7 @@ export default function FarmerDashboard() {
   const handleCancelBooking = async (bookingId) => {
     if (
       !confirm(
-        'Are you sure you want to cancel this booking? Advance payment is non-refundable.',
+        'Are you sure you want to cancel this booking? Service charge is non-refundable.',
       )
     ) {
       return;

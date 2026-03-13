@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentLocation, showToast } from '../utils/helpers';
+import logo from '../assets/logo.jpeg';
+
 
 const Register = () => {
   const { t } = useTranslation();
@@ -122,12 +124,13 @@ const Register = () => {
 
           {/* Header */}
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-9 w-9 rounded-2xl bg-[#1B4332] flex items-center justify-center text-white text-sm font-bold">
-                FS
-              </div>
-              <p className="text-sm font-semibold text-[#1B4332]">FarmSaarthi</p>
-            </div>
+          <Link to="/" className="flex items-center gap-2 mb-6">
+  <img src={logo} alt="FarmSaarthi Logo" className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1" />
+  <div>
+    <p className="text-base font-bold text-[#1B4332]">FarmSaarthi</p>
+    <p className="text-[11px] text-gray-500">Connecting Farmers &amp; Equipment</p>
+  </div>
+</Link>
             <p className="text-xs text-gray-500">Welcome to</p>
             <p className="text-xl font-bold text-[#1B4332]">
               FarmSaarthi <span className="text-[#2D6A4F]">Registration</span>
