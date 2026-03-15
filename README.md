@@ -8,7 +8,7 @@ Built as a final year project at JSS Science and Technology University, Mysore â
 
 ## The Problem
 
-Small and marginal farmers in Karnataka often cannot afford to own tractors, harvesters, or sprayers outright. Equipment sits idle with owners for most of the year while farmers pay informal, opaque rates to middlemen. There was no organized platform to search for nearby equipment, book slots, or make verifiable payments.
+Small and marginal farmers  often cannot afford to own tractors, harvesters, or sprayers outright. Equipment sits idle with owners for most of the year while farmers pay informal, opaque rates to middlemen. There was no organized platform to search for nearby equipment, book slots, or make verifiable payments.
 
 ---
 
