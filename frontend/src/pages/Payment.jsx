@@ -44,9 +44,31 @@ const Payment = () => {
     }
     setProcessing(true);
     try {
-      const { order, razorpayKeyId } = await createPaymentOrder();
-      if (!order || !razorpayKeyId) {
+      const { order, razorpayKeyId, isMockMode } = await createPaymentOrder();
+      if (!order) {
         showToast('Failed to create payment order', 'error');
+        setProcessing(false);
+        return;
+      }
+
+      // ── MOCK MODE: no real Razorpay key configured ──────────────────────
+      if (isMockMode) {
+        showToast('Mock mode: auto-confirming payment (add real Razorpay keys to enable real payments)', 'success');
+        await axios.post('/api/payments/verify', {
+          orderId: order.id,
+          paymentId: `pay_mock_${Date.now()}`,
+          signature: 'mock_signature',
+          bookingId,
+          paymentType: 'advance',
+        });
+        showToast('Booking confirmed!', 'success');
+        navigate('/farmer');
+        return;
+      }
+
+      // ── REAL RAZORPAY ────────────────────────────────────────────────────
+      if (!window.Razorpay) {
+        showToast('Razorpay SDK not loaded. Check your internet connection.', 'error');
         setProcessing(false);
         return;
       }
@@ -83,8 +105,8 @@ const Payment = () => {
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', () => {
-        showToast('Payment failed. Please try again.', 'error');
+      rzp.on('payment.failed', (resp) => {
+        showToast(`Payment failed: ${resp.error?.description || 'Please try again'}`, 'error');
         setProcessing(false);
       });
       rzp.open();

@@ -16,6 +16,7 @@ const notificationSchema = new mongoose.Schema(
         'payment_pending',
         'equipment_nearby',
         'equipment_arrived',
+        'equipment_on_roll',
         'review_received',
         'booking_reminder',
         'dispute_raised',

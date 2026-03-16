@@ -200,9 +200,9 @@ const Checkout = () => {
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-2xl mx-auto space-y-4">
         {/* Order summary & price breakdown */}
-        <section className="lg:col-span-2 space-y-4">
+        <section className="space-y-4">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
             <h2 className="text-sm font-bold text-gray-900">Order Summary</h2>
             <div className="flex gap-3">
@@ -438,6 +438,10 @@ const Checkout = () => {
               </div>
             </div>
 
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[11px] text-amber-800">
+              The 2% service charge is non-refundable in case of cancellation.
+            </div>
+
             <button
               type="submit"
               disabled={submitting || pricing.hours <= 0}
@@ -452,38 +456,6 @@ const Checkout = () => {
               policy.
             </p>
           </form>
-        </section>
-
-        {/* Payment method / QR */}
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-          <h2 className="text-sm font-bold text-gray-900">Payment Method</h2>
-          <div className="rounded-2xl border border-gray-200 p-4 space-y-3 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-800">
-                Pay with UPI App
-              </span>
-              <span className="text-[11px] text-gray-500">
-                UPI • QR Code
-              </span>
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="h-32 w-32 rounded-xl border border-dashed border-gray-400 flex items-center justify-center bg-gray-50">
-                <div className="h-20 w-20 bg-gray-200" />
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-600 text-center">
-              Scan this QR with your UPI app to pay ₹{pricing.serviceCharge}.
-            </p>
-            <button
-              type="button"
-              className="w-full rounded-2xl bg-gray-900 text-white py-2.5 text-sm font-semibold"
-            >
-              I have paid with UPI
-            </button>
-            <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-[11px] text-amber-800">
-              <strong>Note:</strong> The 2% service charge is non‑refundable in case of cancellation.
-            </div>
-          </div>
         </section>
       </div>
 
@@ -515,4 +487,3 @@ const Checkout = () => {
 };
 
 export default Checkout;
-

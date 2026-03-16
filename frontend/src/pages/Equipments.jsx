@@ -223,23 +223,23 @@ const Equipment = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* Available units badge */}
+                      {/* Available units badge — informational only, never blocks booking */}
                       {item.totalUnits > 1 && (
                         <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                           item.availableUnits > 0
                             ? 'bg-blue-50 text-blue-700'
-                            : 'bg-red-50 text-red-600'
+                            : 'bg-amber-50 text-amber-700'
                         }`}>
-                          {item.availableUnits}/{item.totalUnits} units free
+                          {item.availableUnits > 0 ? `${item.availableUnits}/${item.totalUnits} units free today` : "Fully booked today — pick another date"}
                         </span>
                       )}
-                      {item.isActive && item.availableUnits !== 0 ? (
+                      {item.isActive ? (
                         <span className="inline-flex items-center text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          ● Available
+                          Available
                         </span>
                       ) : (
                         <span className="inline-flex items-center text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
-                          ○ Not available
+                          Not available
                         </span>
                       )}
                     </div>
@@ -248,10 +248,10 @@ const Equipment = () => {
                   <div className="pt-2 flex justify-end">
                     <button
                       onClick={() => navigate(`/checkout/${item._id}`)}
-                      disabled={!item.isActive || item.availableUnits === 0}
+                      disabled={!item.isActive}
                       className="px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold bg-farm-primary text-white disabled:bg-gray-300"
                     >
-                      {!item.isActive ? 'Unavailable' : item.availableUnits === 0 ? 'All Units Booked Today' : 'Book Now (2% Service Charge)'}
+                      {item.isActive ? 'Book Now (2% service charge)' : 'Unavailable'}
                     </button>
                   </div>
                 </div>

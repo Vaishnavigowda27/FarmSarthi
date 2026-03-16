@@ -100,12 +100,18 @@ export const createPaymentOrder = async (req, res, next) => {
       status: 'pending',
     });
 
+    const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
+    const isMockMode = !razorpayKeyId ||
+      razorpayKeyId === 'rzp_test_dummy' ||
+      razorpayKeyId === 'dummy_key';
+
     res.status(201).json({
       success: true,
       message: 'Payment order created successfully',
       order: orderResult.order,
       payment: payment,
-      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+      razorpayKeyId: isMockMode ? null : razorpayKeyId,
+      isMockMode,
     });
   } catch (error) {
     next(error);

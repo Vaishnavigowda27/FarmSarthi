@@ -46,19 +46,20 @@ export const createBooking = async (req, res, next) => {
     const requestedDate = new Date(bookingDate);
     requestedDate.setHours(0, 0, 0, 0);
 
-    // Check for conflicts (overlapping time slots on same date)
-    const existingBooking = await Booking.findOne({
+    // Check for conflicts — count overlapping active bookings against totalUnits
+    const overlappingCount = await Booking.countDocuments({
       equipment: equipmentId,
       bookingDate: requestedDate,
       status: { $in: ['hold', 'confirmed', 'ongoing'] },
-      'timeSlot.startTime': { $lte: timeSlot.endTime },
-      'timeSlot.endTime': { $gte: timeSlot.startTime },
+      'timeSlot.startTime': { $lt: timeSlot.endTime },
+      'timeSlot.endTime': { $gt: timeSlot.startTime },
     });
 
-    if (existingBooking) {
+    const totalUnits = equipment.totalUnits || 1;
+    if (overlappingCount >= totalUnits) {
       return res.status(409).json({
         success: false,
-        message: 'Time slot is already booked or on hold',
+        message: `All ${totalUnits} unit${totalUnits > 1 ? 's are' : ' is'} already booked for this time slot. Please choose a different time or date.`,
       });
     }
 
@@ -293,10 +294,13 @@ export const getBookingById = async (req, res, next) => {
       });
     }
 
-    // Check authorization
+    // Check authorization — farmer/renter may be populated objects after .populate()
+    const farmerId = booking.farmer?._id?.toString() || booking.farmer?.toString();
+    const renterId = booking.renter?._id?.toString() || booking.renter?.toString();
+
     if (
-      booking.farmer.toString() !== req.user.id &&
-      booking.renter.toString() !== req.user.id &&
+      farmerId !== req.user.id &&
+      renterId !== req.user.id &&
       req.user.role !== 'admin'
     ) {
       return res.status(403).json({
