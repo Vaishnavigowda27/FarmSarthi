@@ -22,9 +22,9 @@ if (hasValidCredentials()) {
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
   });
-  console.log('✅ Razorpay initialized with valid credentials');
+  console.log(' Razorpay initialized with valid credentials');
 } else {
-  console.log('⚠️  Razorpay running in MOCK mode (no valid credentials)');
+  console.log('  Razorpay running in MOCK mode (no valid credentials)');
 }
 
 // Create Razorpay Order
@@ -77,7 +77,7 @@ export const verifyPaymentSignature = (orderId, paymentId, signature) => {
   try {
     // In mock mode, accept any signature
     if (!razorpay) {
-      console.log('🧪 MOCK signature verification - always passes');
+      console.log(' MOCK signature verification - always passes');
       return true;
     }
 
@@ -100,7 +100,7 @@ export const getPaymentDetails = async (paymentId) => {
   try {
     // Mock payment details
     if (!razorpay) {
-      console.log('🧪 Getting MOCK payment details');
+      console.log(' Getting MOCK payment details');
       return {
         success: true,
         payment: {

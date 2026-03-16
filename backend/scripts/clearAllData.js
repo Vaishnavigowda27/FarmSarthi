@@ -25,7 +25,7 @@ const clearAllData = async () => {
   try {
     await connectDB();
 
-    console.log('🗑️  Clearing all data...');
+    console.log('  Clearing all data...');
 
     await Notification.deleteMany({});
     console.log('   ✓ Notifications cleared');
@@ -50,10 +50,10 @@ const clearAllData = async () => {
       console.log('   ✓ All users cleared');
     }
 
-    console.log('\n✅ All registered data cleared successfully.');
+    console.log('\n All registered data cleared successfully.');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error clearing data:', error);
+    console.error(' Error clearing data:', error);
     process.exit(1);
   }
 };

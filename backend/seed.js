@@ -312,7 +312,7 @@ const seedDatabase = async () => {
     const totalReviews = await Review.countDocuments();
     const totalPayments = await Payment.countDocuments();
 
-    console.log('\n✅ Database seeded successfully!');
+    console.log('\n Database seeded successfully!');
     console.log(`   Farmers   : ${farmers.length}  (phones: 9000000000 to 900000000${farmers.length - 1})`);
     console.log(`   Renters   : ${renters.length}  (phones: 9100000000 to 910000000${renters.length - 1})`);
     console.log(`   Equipment : ${allEquipment.length}`);
