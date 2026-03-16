@@ -17,15 +17,15 @@ export const sendOTPController = async (req, res, next) => {
       });
     }
 
-    console.log('📞 Sending OTP to:', phone);
+    console.log(' Sending OTP to:', phone);
 
     const result = await createAndSendOTP(phone);
 
-    console.log('✅ OTP result:', result);
+    console.log(' OTP result:', result);
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('❌ Send OTP Error:', error);
+    console.error(' Send OTP Error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to send OTP',
@@ -40,13 +40,13 @@ export const resendOTPController = async (req, res, next) => {
 
     phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
 
-    console.log('🔄 Resending OTP to:', phone);
+    console.log(' Resending OTP to:', phone);
 
     const result = await resendOTPService(phone);
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('❌ Resend OTP Error:', error);
+    console.error(' Resend OTP Error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to resend OTP',
@@ -61,7 +61,7 @@ export const register = async (req, res, next) => {
 
     phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
 
-    console.log('📝 Registration attempt:', { name, phone, role });
+    console.log(' Registration attempt:', { name, phone, role });
 
     if (!name || !phone || !otp || !role) {
       return res.status(400).json({
@@ -85,11 +85,11 @@ export const register = async (req, res, next) => {
       });
     }
 
-    console.log('🔐 Verifying OTP...');
+    console.log(' Verifying OTP...');
     const otpResult = await verifyOTP(phone, otp);
 
     if (!otpResult.success) {
-      console.log('❌ OTP verification failed');
+      console.log(' OTP verification failed');
       return res.status(400).json(otpResult);
     }
 
@@ -123,7 +123,7 @@ export const register = async (req, res, next) => {
       isActive: true,
     });
 
-    console.log('✅ User created:', user._id);
+    console.log(' User created:', user._id);
 
     const token = generateToken(user._id);
 
@@ -140,7 +140,7 @@ export const register = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error('❌ Register Error:', error);
+    console.error(' Register Error:', error);
     res.status(500).json({
       success: false,
       message: 'Registration failed',
@@ -155,7 +155,7 @@ export const login = async (req, res, next) => {
 
     phone = phone.replace(/^\+91/, '').replace(/\s/g, '');
 
-    console.log('🔑 Login attempt for:', phone);
+    console.log(' Login attempt for:', phone);
 
     if (!phone || !otp) {
       return res.status(400).json({
@@ -172,11 +172,11 @@ export const login = async (req, res, next) => {
       });
     }
 
-    console.log('🔐 Verifying OTP...');
+    console.log(' Verifying OTP...');
     const otpResult = await verifyOTP(phone, otp);
 
     if (!otpResult.success) {
-      console.log('❌ OTP verification failed');
+      console.log(' OTP verification failed');
       return res.status(400).json(otpResult);
     }
 
@@ -189,7 +189,7 @@ export const login = async (req, res, next) => {
 
     const token = generateToken(user._id);
 
-    console.log('✅ Login successful for user:', user._id);
+    console.log(' Login successful for user:', user._id);
 
     res.status(200).json({
       success: true,
@@ -204,7 +204,7 @@ export const login = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error('❌ Login Error:', error);
+    console.error(' Login Error:', error);
     res.status(500).json({
       success: false,
       message: 'Login failed',
@@ -222,7 +222,7 @@ export const getMe = async (req, res, next) => {
       user
     });
   } catch (error) {
-    console.error('❌ Get User Error:', error);
+    console.error(' Get User Error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get user'

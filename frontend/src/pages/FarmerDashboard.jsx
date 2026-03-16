@@ -344,7 +344,7 @@ export default function FarmerDashboard() {
 
                   {booking.status === 'disputed' && (
                     <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 rounded-full px-3 py-1 text-center">
-                      🔄 Under Review
+                       Under Review
                     </div>
                   )}
 
