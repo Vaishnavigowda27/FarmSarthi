@@ -10,6 +10,7 @@ import Equipment from './pages/Equipments';
 import FarmerDashboard from './pages/FarmerDashboard';
 import RenterDashboard from './pages/RenterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminAnalytics from './pages/AdminAnalytics';
 import Checkout from './pages/Checkout';
 import Payment from './pages/Payment';
 import SettingsPage from './pages/Settings';
@@ -55,34 +56,17 @@ function AppContent() {
           }
         >
           {/* Farmer */}
-          <Route
-            path="/farmer"
-            element={<FarmerDashboard />}
-          />
-          <Route
-            path="/equipment"
-            element={<Equipment />}
-          />
-          <Route
-            path="/checkout/:equipmentId"
-            element={<Checkout />}
-          />
-          <Route
-            path="/payment/:bookingId"
-            element={<Payment />}
-          />
+          <Route path="/farmer" element={<FarmerDashboard />} />
+          <Route path="/equipment" element={<Equipment />} />
+          <Route path="/checkout/:equipmentId" element={<Checkout />} />
+          <Route path="/payment/:bookingId" element={<Payment />} />
 
           {/* Renter */}
-          <Route
-            path="/renter"
-            element={<RenterDashboard />}
-          />
+          <Route path="/renter" element={<RenterDashboard />} />
 
           {/* Admin */}
-          <Route
-            path="/admin"
-            element={<AdminDashboard />}
-          />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
 
           {/* Settings */}
           <Route path="/settings" element={<SettingsPage />} />
