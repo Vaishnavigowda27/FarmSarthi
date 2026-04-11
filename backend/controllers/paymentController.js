@@ -2,6 +2,7 @@ import Payment from '../models/Payment.js';
 import Booking from '../models/Booking.js';
 import Equipment from '../models/Equipment.js';
 import User from '../models/User.js';
+import crypto from 'crypto';
 import {
   createOrder,
   verifyPaymentSignature,
@@ -225,6 +226,41 @@ export const verifyPayment = async (req, res, next) => {
       message: paymentType === 'advance' ? 'Payment verified and booking confirmed' : 'Payment verified successfully',
       payment,
       booking: paymentType === 'advance' ? await Booking.findById(bookingId).populate('equipment farmer renter') : undefined,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Simulate a successful test payment (localhost dev only)
+ *          Generates a valid Razorpay signature server-side so the modal can be bypassed
+ * @route   POST /api/payments/test-simulate
+ * @access  Private (Farmer only) — only works in development
+ */
+export const testSimulatePayment = async (req, res, next) => {
+  try {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ success: false, message: 'Not available in production' });
+    }
+
+    const { orderId, bookingId, paymentType } = req.body;
+    if (!orderId || !bookingId) {
+      return res.status(400).json({ success: false, message: 'orderId and bookingId required' });
+    }
+
+    // Generate a fake but HMAC-valid paymentId and signature
+    const fakePaymentId = `pay_test_${Date.now()}`;
+    const signature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${orderId}|${fakePaymentId}`)
+      .digest('hex');
+
+    res.status(200).json({
+      success: true,
+      orderId,
+      paymentId: fakePaymentId,
+      signature,
     });
   } catch (error) {
     next(error);
