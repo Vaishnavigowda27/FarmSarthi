@@ -10,6 +10,7 @@ export default function AdminDashboard() {
   const [allEquipments, setAllEquipments] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [disputes, setDisputes] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState({ bookingsOverTime: [], popularCategories: [] });
   const [resolvingId, setResolvingId] = useState(null);
   const [resolveData, setResolveData] = useState({});
   const [loading, setLoading] = useState(true);
@@ -32,18 +33,32 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [dashboardRes, usersRes, equipmentsRes, pendingRes, conflictsRes] = await Promise.all([
+      const [dashboardRes, usersRes, equipmentsRes, pendingRes, conflictsRes, analyticsRes] = await Promise.all([
         axios.get('/api/admin/dashboard'),
         axios.get('/api/admin/users'),
         axios.get('/api/admin/equipments'),
         axios.get('/api/admin/equipment/pending'),
         axios.get('/api/admin/conflicts'),
+        axios.get('/api/admin/analytics'),
       ]);
 
       const dash = dashboardRes.data.dashboard;
       setAllUsers(usersRes.data.users || []);
       setAllEquipments(pendingRes.data.equipment || []);
       setDisputes(conflictsRes.data.conflicts || []);
+
+      // Format bookings over time for chart
+      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const bookingsOverTime = (analyticsRes.data.analytics?.bookingsOverTime || []).map((b) => ({
+        name: `${MONTHS[b._id.month - 1]} ${b._id.year}`,
+        bookings: b.count,
+        revenue: Math.round(b.totalRevenue),
+      }));
+      const popularCategories = (analyticsRes.data.analytics?.popularCategories || []).map((c) => ({
+        name: c._id,
+        count: c.count,
+      }));
+      setAnalyticsData({ bookingsOverTime, popularCategories });
 
       const stat = dash?.statistics || {};
       setStats({
@@ -159,6 +174,64 @@ export default function AdminDashboard() {
           <p className="text-[11px] text-gray-500 mt-1">
             Awaiting manual resolution.
           </p>
+        </div>
+      </section>
+
+      {/* Analytics charts */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Bookings over time */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4">Bookings Over Time</h2>
+          {analyticsData.bookingsOverTime.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-8">No booking data yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {(() => {
+                const max = Math.max(...analyticsData.bookingsOverTime.map(d => d.bookings), 1);
+                return analyticsData.bookingsOverTime.map((d) => (
+                  <div key={d.name} className="flex items-center gap-2 text-[11px]">
+                    <span className="w-16 text-right text-gray-500 shrink-0">{d.name}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                      <div
+                        className="h-5 rounded-full bg-farm-primary flex items-center justify-end pr-2 transition-all"
+                        style={{ width: `${Math.max((d.bookings / max) * 100, 4)}%` }}
+                      >
+                        <span className="text-white font-semibold text-[10px]">{d.bookings}</span>
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+        </div>
+
+        {/* Equipment by category */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4">Equipment by Category</h2>
+          {analyticsData.popularCategories.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-8">No category data yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {(() => {
+                const max = Math.max(...analyticsData.popularCategories.map(d => d.count), 1);
+                return analyticsData.popularCategories.map((d) => (
+                  <div key={d.name} className="flex items-center gap-2 text-[11px]">
+                    <span className="w-16 text-right text-gray-500 shrink-0">{d.name}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                      <div
+                        className="h-5 rounded-full bg-emerald-400 flex items-center justify-end pr-2 transition-all"
+                        style={{ width: `${Math.max((d.count / max) * 100, 4)}%` }}
+                      >
+                        <span className="text-white font-semibold text-[10px]">{d.count}</span>
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
         </div>
       </section>
 
