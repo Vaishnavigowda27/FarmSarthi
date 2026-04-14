@@ -5,38 +5,39 @@ export const generateOTP = () => {
 };
 
 async function sendViaAndroidGateway(phone, otp) {
-  const gatewayUrl = process.env.ANDROID_GATEWAY_URL;
+  const apiKey = process.env.TEXTBEE_API_KEY;
+  const deviceId = process.env.TEXTBEE_DEVICE_ID;
 
-  if (!gatewayUrl) {
-    console.log('ANDROID_GATEWAY_URL not set. Skipping real SMS, logging OTP instead.');
+  if (!apiKey || !deviceId) {
     console.log(`OTP for ${phone}: ${otp}`);
-    return { success: true, message: 'OTP logged for development (no SMS sent)' };
+    return { success: true, message: 'OTP logged (no SMS gateway configured)' };
   }
 
   try {
-    const payload = {
-      to: phone,
-      message: `Your FarmSaarthi OTP is ${otp}. It is valid for 10 minutes.`,
-    };
-
-    const res = await fetch(gatewayUrl, {
+    const res = await fetch(`https://api.textbee.dev/api/v1/gateway/devices/${deviceId}/send-sms`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-api-key': apiKey,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        receivers: [`+91${phone}`],
+        message: `Your FarmSaarthi OTP is ${otp}. Valid for 10 minutes. Do not share with anyone.`,
+      }),
     });
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      console.error('Android gateway error response:', text);
-      throw new Error('Android SMS gateway request failed');
+      console.error('TextBee error:', text);
+      console.log(`OTP for ${phone}: ${otp}`);
+      return { success: true, message: 'Gateway failed, OTP logged to console' };
     }
 
     return { success: true };
   } catch (err) {
-    console.error('Android SMS gateway request error:', err);
-    throw err;
+    console.error('TextBee request error:', err.message);
+    console.log(`OTP for ${phone}: ${otp}`);
+    return { success: true, message: 'Gateway unreachable, OTP logged to console' };
   }
 }
 
@@ -47,7 +48,6 @@ export const createAndSendOTP = async (rawPhone) => {
     await OTP.deleteMany({ phone });
 
     const otpCode = generateOTP();
-
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await OTP.create({
@@ -129,4 +129,3 @@ export const resendOTP = async (rawPhone) => {
     throw error;
   }
 };
-
