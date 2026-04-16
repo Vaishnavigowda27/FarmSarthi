@@ -2,12 +2,7 @@ import Payment from '../models/Payment.js';
 import Booking from '../models/Booking.js';
 import Equipment from '../models/Equipment.js';
 import User from '../models/User.js';
-import {
-  createOrder,
-  verifyPaymentSignature,
-  getPaymentDetails,
-  initiateRefund,
-} from '../utils/paymentService.js';
+
 import { sendPaymentNotification, sendBookingConfirmation } from '../utils/notificationService.js';
 
 /**
@@ -91,7 +86,6 @@ export const confirmPayment = async (req, res, next) => {
 };
 
     
-
 /**
  * @desc    Verify payment and update booking
  * @route   POST /api/payments/verify
