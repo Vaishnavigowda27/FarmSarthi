@@ -2,7 +2,7 @@ import Booking from '../models/Booking.js';
 import Equipment from '../models/Equipment.js';
 import User from '../models/User.js';
 import { calculateDistance, findNearbyUsers } from '../utils/distanceCalculator.js';
-import { calculateServiceCharge } from '../utils/razorpayService.js';
+import { calculateServiceCharge } from '../utils/paymentService.js';
 import {
   sendBookingConfirmation,
   sendCancellationNotification,

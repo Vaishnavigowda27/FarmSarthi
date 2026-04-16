@@ -7,7 +7,7 @@ import {
   verifyPaymentSignature,
   getPaymentDetails,
   initiateRefund,
-} from '../utils/razorpayService.js';
+} from '../utils/paymentService.js';
 import { sendPaymentNotification, sendBookingConfirmation } from '../utils/notificationService.js';
 
 /**
@@ -15,108 +15,82 @@ import { sendPaymentNotification, sendBookingConfirmation } from '../utils/notif
  * @route   POST /api/payments/create-order
  * @access  Private (Farmer only)
  */
-export const createPaymentOrder = async (req, res, next) => {
+// Replace createPaymentOrder + verifyPayment with this one handler:
+
+/**
+ * @desc    Confirm payment (self-reported UPI)
+ * @route   POST /api/payments/confirm
+ * @access  Private (Farmer only)
+ */
+export const confirmPayment = async (req, res, next) => {
   try {
     const { bookingId, paymentType } = req.body;
 
-    if (!bookingId || !paymentType) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide booking ID and payment type',
-      });
-    }
-
-    // Get booking
     const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found',
-      });
-    }
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
-    // Verify user is the farmer
-    if (booking.farmer.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized',
-      });
-    }
+    if (booking.farmer.toString() !== req.user.id)
+      return res.status(403).json({ success: false, message: 'Not authorized' });
 
-    // Determine amount based on payment type
-    let amount;
-    if (paymentType === 'advance') {
-      if (booking.paymentStatus.advance) {
-        return res.status(400).json({
-          success: false,
-          message: 'Advance payment already completed',
-        });
-      }
-      amount = booking.pricing.serviceCharge;
-    } else if (paymentType === 'full') {
-      if (booking.paymentStatus.full) {
-        return res.status(400).json({
-          success: false,
-          message: 'Full payment already completed',
-        });
-      }
-      amount = booking.pricing.remainingPayment;
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid payment type',
-      });
-    }
+    if (paymentType === 'advance' && booking.paymentStatus.advance)
+      return res.status(400).json({ success: false, message: 'Advance payment already completed' });
 
-    // Create Razorpay order
-    const orderResult = await createOrder(
-      amount,
-      `booking_${bookingId}`,
-      {
-        bookingId: bookingId,
-        paymentType: paymentType,
-        farmerId: req.user.id,
-      }
-    );
+    const amount = paymentType === 'advance'
+      ? booking.pricing.serviceCharge
+      : booking.pricing.remainingPayment;
 
-    if (!orderResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create payment order',
-      });
-    }
-
-    // Create payment record
+    // Record payment
     const payment = await Payment.create({
       booking: bookingId,
       farmer: booking.farmer,
       renter: booking.renter,
-      amount: amount,
-      paymentType: paymentType,
-      paymentMethod: 'razorpay',
-      razorpay: {
-        orderId: orderResult.order.id,
-      },
-      status: 'pending',
+      amount,
+      paymentType,
+      paymentMethod: 'offline',   // UPI but self-reported — treat as offline/manual
+      status: 'completed',
+      transactionDate: Date.now(),
     });
 
-    const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
-    const isMockMode = !razorpayKeyId ||
-      razorpayKeyId === 'rzp_test_dummy' ||
-      razorpayKeyId === 'dummy_key';
+    // Update booking
+    if (paymentType === 'advance') {
+      booking.paymentStatus.advance = true;
+      booking.status = 'confirmed';
+    } else {
+      booking.paymentStatus.full = true;
+    }
+    await booking.save();
 
-    res.status(201).json({
-      success: true,
-      message: 'Payment order created successfully',
-      order: orderResult.order,
-      payment: payment,
-      razorpayKeyId: isMockMode ? null : razorpayKeyId,
-      isMockMode,
-    });
+    // Same post-confirmation side-effects as before
+    if (paymentType === 'advance') {
+      const equipment = await Equipment.findById(booking.equipment);
+      let scheduleEntry = equipment.availability.schedule.find(
+        e => new Date(e.date).toDateString() === new Date(booking.bookingDate).toDateString()
+      );
+      if (!scheduleEntry) {
+        equipment.availability.schedule.push({
+          date: booking.bookingDate,
+          slots: [{ startTime: booking.timeSlot.startTime, endTime: booking.timeSlot.endTime, isBooked: true, bookingId: booking._id }],
+        });
+      } else {
+        scheduleEntry.slots.push({ startTime: booking.timeSlot.startTime, endTime: booking.timeSlot.endTime, isBooked: true, bookingId: booking._id });
+      }
+      await equipment.save();
+      await User.findByIdAndUpdate(booking.farmer, { $push: { bookingHistory: booking._id }, $inc: { totalSpent: amount } });
+      await User.findByIdAndUpdate(booking.renter, { $inc: { totalEarnings: amount } });
+      await sendBookingConfirmation(booking);
+    } else {
+      await User.findByIdAndUpdate(booking.farmer, { $inc: { totalSpent: amount } });
+      await User.findByIdAndUpdate(booking.renter, { $inc: { totalEarnings: amount } });
+      await sendPaymentNotification(payment, 'received');
+    }
+
+    res.status(200).json({ success: true, message: 'Booking confirmed', payment });
   } catch (error) {
     next(error);
   }
 };
+
+    
 
 /**
  * @desc    Verify payment and update booking

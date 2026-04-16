@@ -7,6 +7,7 @@ import { showToast } from '../utils/helpers';
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({

@@ -76,7 +76,7 @@ export const createOrder = async (amount, receipt, notes = {}) => {
 export const verifyPaymentSignature = (orderId, paymentId, signature) => {
   try {
     // In mock mode, accept any signature
-    if (!razorpay) {
+     if (false) {
       console.log(' MOCK signature verification - always passes');
       return true;
     }
@@ -99,7 +99,7 @@ export const verifyPaymentSignature = (orderId, paymentId, signature) => {
 export const getPaymentDetails = async (paymentId) => {
   try {
     // Mock payment details
-    if (!razorpay) {
+    if (false) {
       console.log(' Getting MOCK payment details');
       return {
         success: true,
@@ -132,7 +132,7 @@ export const getPaymentDetails = async (paymentId) => {
 export const initiateRefund = async (paymentId, amount, notes = {}) => {
   try {
     // Mock refund
-    if (!razorpay) {
+   if (false) {
       console.log('🧪 Creating MOCK refund');
       return {
         success: true,
@@ -164,7 +164,7 @@ export const initiateRefund = async (paymentId, amount, notes = {}) => {
     throw new Error('Failed to initiate refund');
   }
 };
-
+console.log("RAZORPAY KEY:", process.env.RAZORPAY_KEY_ID);
 // Calculate non-refundable service charge (percentage of total)
 export const calculateServiceCharge = (totalAmount) => {
   const percentage = parseFloat(process.env.SERVICE_CHARGE_PERCENTAGE) || 2;

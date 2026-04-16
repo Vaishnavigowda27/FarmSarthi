@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+dotenv.config();
 import cors from 'cors';
 import connectDB from './config/db.js';
 import errorHandler from './middleware/errorHandler.js';
@@ -18,7 +19,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 
 // Load environment variables
-dotenv.config();
+
 
 // Ensure uploads directory exists
 const __filename = fileURLToPath(import.meta.url);
