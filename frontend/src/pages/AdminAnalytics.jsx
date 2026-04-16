@@ -59,9 +59,11 @@ export default function AdminAnalytics() {
 
   // Revenue summary from payments
   const completedPayments = payments.filter(p => p.status === 'completed');
+  const platformRevenue = completedPayments.filter(p => p.paymentType === 'advance').reduce((sum, p) => sum + (p.amount || 0), 0);
+  {/*
   const totalRevenue = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const advanceRevenue = completedPayments.filter(p => p.paymentType === 'advance').reduce((sum, p) => sum + (p.amount || 0), 0);
-  const fullRevenue = completedPayments.filter(p => p.paymentType === 'full').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const platformRevenue = completedPayments.filter(p => p.paymentType === 'advance').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const fullRevenue = completedPayments.filter(p => p.paymentType === 'full').reduce((sum, p) => sum + (p.amount || 0), 0);*/}
 
   // Monthly revenue from bookings data
   const revenueData = bookingsOverTime;
@@ -106,8 +108,18 @@ export default function AdminAnalytics() {
       </div>
 
       {/* Revenue summary cards */}
+      
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs text-gray-500 mb-1">Platform Revenue</p>
+          <p className="text-2xl font-bold text-farm-primary">
+            ₹{platformRevenue.toLocaleString('en-IN')}
+          </p>
+          <p className="text-[11px] text-gray-500 mt-1">
+            Total gross revenue across all bookings.
+          </p>
+        </div>
+        {/*<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <p className="text-xs text-gray-500 mb-1">Total Revenue Collected</p>
           <p className="text-2xl font-bold text-farm-primary">
             ₹{totalRevenue.toLocaleString('en-IN')}
@@ -127,7 +139,7 @@ export default function AdminAnalytics() {
             ₹{fullRevenue.toLocaleString('en-IN')}
           </p>
           <p className="text-[11px] text-gray-400 mt-1">Remaining amounts settled</p>
-        </div>
+        </div>*/}
       </section>
 
       {/* Charts row 1 */}

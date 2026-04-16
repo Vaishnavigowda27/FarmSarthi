@@ -136,7 +136,7 @@ export default function AdminDashboard() {
 
       {/* Platform revenue cards */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+       {/* <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <p className="text-xs text-gray-500 mb-1">Platform Revenue</p>
           <p className="text-2xl font-bold text-farm-primary">
             ₹{platformRevenue.toLocaleString('en-IN')}
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
           <p className="text-[11px] text-gray-500 mt-1">
             Total gross revenue across all bookings.
           </p>
-        </div>
+        </div> */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <p className="text-xs text-gray-500 mb-1">Total Users</p>
           <p className="text-2xl font-bold text-gray-900">
