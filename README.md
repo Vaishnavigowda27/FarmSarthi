@@ -171,7 +171,7 @@ In-app notifications are delivered to a bell icon in the navigation header. The 
 
 ### Reviews
 
-Reviews are available only on completed bookings that have not been reviewed. Farmers rate out of 5 and leave a comment. Equipment and owner ratings are recalculated as running averages after each submission. Owners can respond to reviews they receive.
+Reviews are available only on completed bookings that have not been reviewed. Farmers rate out of 5 and leave a comment. Equipment and owner ratings are recalculated as running averages after each submission. Owners can check to reviews they receive.
 
 ### Multi-language Support
 
