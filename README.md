@@ -178,5 +178,5 @@ Reviews are available only on completed bookings that have not been reviewed. Fa
 The interface supports English and Kannada. Language toggles instantly without a page reload using i18next.
 
 ---
-
+![UI interfaces](farmss.png)
 
