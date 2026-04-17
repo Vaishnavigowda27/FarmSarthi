@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { showToast } from '../utils/helpers';
 import logo from '../assets/logo.jpeg';
-
+import Navbar from '../components/Navbar';
 
 const Login = () => {
   const { t } = useTranslation();
@@ -15,7 +15,7 @@ const Login = () => {
   const [otp, setOTP] = useState('');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-
+  
   const handlePhoneChange = (e) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setPhone(value);
@@ -68,19 +68,23 @@ const Login = () => {
   };
 
   return (
+    <>
+    <Navbar />
+
     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center px-4 py-10">
+      
       <div className="w-full max-w-md">
         {/* Login card */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-6 py-8 sm:px-8 sm:py-10">
 
           {/* Branding inside card */}
           <Link to="/" className="flex items-center gap-2 mb-6">
-  <img src={logo} alt="FarmSaarthi Logo" className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1" />
-  <div>
-    <p className="text-base font-bold text-[#1B4332]">Farm Saarthi</p>
-    <p className="text-[11px] text-gray-500">Connecting Farmers &amp; Equipment</p>
-  </div>
-</Link>
+            <img src={logo} alt="FarmSaarthi Logo" className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1" />
+            <div>
+              <p className="text-base font-bold text-[#1B4332]">{t('app.name')}</p>
+              <p className="text-[11px] text-gray-500">Connecting Farmers &amp; Equipment</p>
+            </div>
+          </Link>
 
           <h1 className="text-xl font-bold text-[#1B4332] mb-1">Welcome back</h1>
           <p className="text-xs text-gray-500 mb-6">
@@ -91,7 +95,7 @@ const Login = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Mobile Number
+                  {t('auth.phone')}
                 </label>
                 <div className="flex items-stretch rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
                   <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
@@ -117,7 +121,7 @@ const Login = () => {
                     disabled={loading || phone.length !== 10}
                     className="px-4 text-xs font-semibold bg-[#2D6A4F] text-white disabled:bg-gray-300"
                   >
-                    {loading ? 'Sending…' : 'Get OTP'}
+                    {loading ? '…' : t('auth.sendOtp')}
                   </button>
                 </div>
                 <p className="text-[11px] text-gray-400 mt-1">
@@ -131,14 +135,14 @@ const Login = () => {
                 disabled={loading || phone.length !== 10}
                 className="w-full mt-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white py-3 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300"
               >
-                {loading ? 'Sending OTP…' : 'Login Securely'}
+                {loading ? 'Sending OTP…' : t('auth.login')}
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Mobile Number
+                  {t('auth.phone')}
                 </label>
                 <div className="flex rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
                   <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
@@ -186,7 +190,7 @@ const Login = () => {
                   }}
                   className="w-1/3 border border-gray-200 text-xs font-semibold text-gray-700 rounded-2xl py-3 hover:bg-gray-50 transition"
                 >
-                  Back
+                  {t('common.back')}
                 </button>
                 <button
                   type="button"
@@ -194,7 +198,7 @@ const Login = () => {
                   disabled={loading || otp.length !== 6}
                   className="flex-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white py-3 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300"
                 >
-                  {loading ? 'Verifying…' : 'Login Securely'}
+                  {loading ? 'Verifying…' : t('auth.login')}
                 </button>
               </div>
 
@@ -224,13 +228,14 @@ const Login = () => {
                 to="/register"
                 className="text-[#2D6A4F] font-semibold hover:underline"
               >
-                Register here
+                {t('common.register')}
               </Link>
             </p>
           </div>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

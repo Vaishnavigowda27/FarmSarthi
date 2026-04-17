@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentLocation, showToast } from '../utils/helpers';
 import logo from '../assets/logo.jpeg';
-
+import Navbar from '../components/Navbar';
 
 const Register = () => {
   const { t } = useTranslation();
@@ -117,6 +117,9 @@ const Register = () => {
   };
 
   return (
+    <>
+    <Navbar />
+    
     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-lg">
         {/* Registration card — clean white, no background overlay */}
@@ -350,6 +353,7 @@ const Register = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

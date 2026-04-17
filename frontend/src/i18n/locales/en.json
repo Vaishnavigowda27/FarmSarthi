@@ -20,7 +20,7 @@
     "bookTitle": "Book Slots",
     "bookDesc": "Reserve equipment for your schedule",
     "payTitle": "Pay Securely",
-    "payDesc": "Advance payment with Razorpay"
+    "payDesc": "Advance payment by scanning qr code"
   },
   
   "auth": {

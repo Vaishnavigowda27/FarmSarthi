@@ -4,42 +4,6 @@ export const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-async function sendViaAndroidGateway(phone, otp) {
-  const gatewayUrl = process.env.ANDROID_GATEWAY_URL;
-
-  if (!gatewayUrl) {
-    console.log('Backend terminal OTP.');
-    console.log(`OTP for ${phone}: ${otp}`);
-    return { success: true, message: 'OTP logged for development (no SMS sent)' };
-  }
-
-  try {
-    const payload = {
-      to: phone,
-      message: `Your FarmSaarthi OTP is ${otp}. It is valid for 10 minutes.`,
-    };
-
-    const res = await fetch(gatewayUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      console.error('Android gateway error response:', text);
-      throw new Error('Android SMS gateway request failed');
-    }
-
-    return { success: true };
-  } catch (err) {
-    console.error('Android SMS gateway request error:', err);
-    throw err;
-  }
-}
-
 export const createAndSendOTP = async (rawPhone) => {
   try {
     const phone = rawPhone.replace(/^\+91/, '').replace(/\s/g, '');
@@ -47,7 +11,6 @@ export const createAndSendOTP = async (rawPhone) => {
     await OTP.deleteMany({ phone });
 
     const otpCode = generateOTP();
-
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await OTP.create({
@@ -58,7 +21,8 @@ export const createAndSendOTP = async (rawPhone) => {
       expiresAt,
     });
 
-    await sendViaAndroidGateway(phone, otpCode);
+    // OTP printed to backend terminal for development
+    console.log(`OTP for ${phone}: ${otpCode}`);
 
     return {
       success: true,

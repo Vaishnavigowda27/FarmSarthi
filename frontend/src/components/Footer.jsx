@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: 'Is my payment secure?',
-    a: 'Yes. We use secure payment methods and UPI for all transactions. Only a 10% advance is charged at booking; the rest is settled directly.',
+    a: 'Yes. We use secure payment methods like QR code and UPI for all transactions. Only a 2% advance is charged at booking; the rest is settled directly.',
   },
   {
     q: 'What if the equipment breaks down?',
@@ -44,12 +44,12 @@ const services = [
   {
     icon: ShieldCheck,
     title: 'Secure Payments',
-    desc: 'Pay a small advance via Razorpay or UPI to lock your booking.',
+    desc: 'Pay a advance via by scanning QR code or thorugh UPI generated to lock your booking.',
   },
   {
-    icon: Phone,
-    title: 'Owner Connect',
-    desc: 'Chat or call equipment owners directly through the platform.',
+    icon: Tractor,
+    title: 'Equipment utilization',
+    desc: 'Let your unused equipment generate income by renting it out to trusted users',
   },
 ];
 
@@ -74,7 +74,7 @@ const Footer = () => {
               Bridging Farmers & Equipment Owners
             </h2>
             <p className="text-sm text-white/70 leading-relaxed">
-              FarmSaarthi is a Mysore-based agricultural rental platform built to
+              FarmSaarthi is a location-based agricultural rental platform built to
               make modern farming equipment accessible to every farmer .
                We connect equipment owners with
               farmers who need machinery for a day, a week, or a season.

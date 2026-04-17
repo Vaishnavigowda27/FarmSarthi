@@ -65,7 +65,7 @@ export default function Home() {
       <img src={paymentImg} alt="Pay Securely" className="h-full w-full object-cover" />
     </div>
     <h3 className="text-base font-semibold text-gray-900 mb-1">Pay Securely</h3>
-    <p className="text-sm text-gray-600">Advance payment with Razorpay and UPI.</p>
+    <p className="text-sm text-gray-600">Advance payment by scanning QR code</p>
   </div>
 
 </div>
