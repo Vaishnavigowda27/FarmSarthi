@@ -2,7 +2,7 @@
 
 An agricultural equipment rental platform built . Farm Saarthi connects farmers who need machinery with equipment owners who have idle inventory, handling the full rental lifecycle from discovery through payment, dispute resolution, and review.
 
-Built as a final year project at JSS Science and Technology University, Mysore — Department of Information Science and Engineering (2025–26).
+Undergrad final year project.
 
 ---
 
@@ -14,7 +14,7 @@ Small and marginal farmers  often cannot afford to own tractors, harvesters, or 
 
 ## What It Does
 
-Farmers can search for equipment available near their location, see real-time availability by unit count, pick a time slot, pay a small advance through Razorpay, and track their bookings. Equipment owners list their machinery, set their rates, review incoming booking requests, and receive earnings summaries. Admins verify equipment listings, resolve disputes, and monitor platform health.
+Farmers can search for equipment available near their location, see real-time availability by unit count, pick a time slot, pay a small advance pay by scanning QR or upi id, and track their bookings. Equipment owners list their machinery, set their rates, review incoming booking requests, and receive earnings summaries. Admins verify equipment listings, resolve disputes, and monitor platform health & analytics.
 
 ---
 
@@ -25,9 +25,7 @@ Farmers can search for equipment available near their location, see real-time av
 - MongoDB with Mongoose 9, 2dsphere geospatial indexing
 - JWT authentication, bcryptjs for password hashing
 - Multer for equipment photo uploads
-- Razorpay SDK for payment processing
-- Android SMS Gateway for OTP delivery (self-hosted, zero cost)
-
+ 
 **Frontend**
 - React 19 with Vite 7
 - Tailwind CSS 3
@@ -45,7 +43,7 @@ Farmers can search for equipment available near their location, see real-time av
 
 - Node.js 18 or higher
 - A MongoDB Atlas account (free tier works fine) or a local MongoDB instance
-- A Razorpay account in Test Mode for payment testing
+  
 
 ### 1. Clone the repository
 
@@ -72,9 +70,6 @@ MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=replace_with_a_long_random_string
 JWT_EXPIRE=30d
 
-RAZORPAY_KEY_ID=rzp_test_your_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
-
 FRONTEND_URL=http://localhost:5173
 
 MAX_FILE_SIZE=5242880
@@ -83,7 +78,7 @@ UPLOAD_PATH=./uploads
 SERVICE_CHARGE_PERCENTAGE=2
 PROXIMITY_RADIUS_KM=10
 
-ANDROID_GATEWAY_URL=
+
 ```
 
 ### 3. Frontend setup
@@ -132,7 +127,10 @@ The frontend runs at `http://localhost:5173` and the backend API at `http://loca
 
 ### Authentication
 
-Phone-only OTP login. No passwords anywhere. A 6-digit code is generated per request, expires in 10 minutes, and is deleted from the database immediately on successful verification. Maximum 3 attempts and a 2-minute resend cooldown prevent abuse.
+OTP login. No passwords anywhere. A 6-digit code is generated per request in backend terminal, expires in 10 minutes, and is deleted from the database immediately on successful verification. 
+
+### Equipment Listing
+Equipment owners can add agricultural machines to the platform.Owners provide equipment name, description, unitsand pricing.Images can be uploaded and stored on the server.Equipment location is stored for location-based search.Newly added equipment may require admin verification before becoming visible.
 
 ### Equipment Discovery
 
@@ -144,7 +142,9 @@ The system checks for slot overlaps before creating any booking. If a requested 
 
 ### Payments
 
-The payment flow is a three-step Razorpay integration. The backend creates a Razorpay order for the 2% service charge, the frontend opens the Razorpay checkout modal, and after the user pays, the backend verifies the HMAC-SHA256 signature before confirming the booking. The remaining amount is paid directly to the equipment owner after the work is done.
+The system creates a payment order for the booking service charge.The user completes the transaction through scanning QR code or paying through UPI id.
+After successful payment, the booking status becomes confirmed.
+
 
 Total cost formula:
 ```
@@ -176,6 +176,10 @@ Reviews are available only on completed bookings that have not been reviewed. Fa
 ### Multi-language Support
 
 The interface supports English and Kannada. Language toggles instantly without a page reload using i18next.
+
+### Administration control
+
+The administrator monitors platform activities and manages system data.Verify equipment listings.View bookings , system activity & Platform analytics.Resolve disputes between users.Maintain platform data integrity
 
 ---
 
