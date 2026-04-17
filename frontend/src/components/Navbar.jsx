@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FaGlobe } from 'react-icons/fa';
 import logo from '../assets/logo.jpeg';
 const Navbar = () => {
-  const { t, i18n } = useTranslation();
+const { t, i18n } = useTranslation();
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'kn' : 'en');
