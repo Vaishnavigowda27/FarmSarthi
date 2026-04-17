@@ -209,7 +209,7 @@ const Register = () => {
                     disabled={loading}
                     className="w-full flex items-center justify-center gap-1 rounded-2xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs py-2.5 transition disabled:bg-gray-300"
                   >
-                    <span>📍</span>
+                    <span></span>
                     Get Current Location
                   </button>
                 </div>
@@ -231,11 +231,11 @@ const Register = () => {
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl">🚜</span>
-                      <p className="font-semibold">I am a Farmer</p>
+                      <span className="text-xl"></span>
+                      <p className="font-bold">I am a Farmer</p>
                     </div>
                     <p className="text-[11px] text-gray-500">
-                      Find &amp; book equipment for your farm.
+                       Find &amp; book equipment for your farm.
                     </p>
                   </button>
                   <button
@@ -248,8 +248,8 @@ const Register = () => {
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl">🛠️</span>
-                      <p className="font-semibold">I am an Equipment Owner</p>
+                      <span className="text-xl"></span>
+                      <p className="font-bold">I am an Equipment Owner</p>
                     </div>
                     <p className="text-[11px] text-gray-500">
                       List your machines &amp; track earnings.

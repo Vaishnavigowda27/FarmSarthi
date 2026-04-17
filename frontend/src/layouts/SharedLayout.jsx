@@ -9,7 +9,7 @@ import {
   LogOut,
   Bell,
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
+import Toggle from '../components/Toggle';
 
 const navItemsByRole = (role) => {
   if (role === 'renter') {
@@ -55,6 +55,7 @@ export default function SharedLayout() {
   const panelRef = useRef(null);
 
   const items = navItemsByRole(user?.role);
+  const shouldShowToggle = !location.pathname.startsWith('/admin');
 
   // Fetch notifications + poll every 30s
   const fetchNotifications = async () => {
@@ -102,6 +103,7 @@ export default function SharedLayout() {
   };
 
   return (
+
     <div className="min-h-screen bg-[#F8F9FA] text-gray-900 flex">
       {/* Sidebar */}
       <aside className="hidden md:flex md:flex-col w-64 bg-farm-dark text-white sticky top-0 h-screen">
@@ -114,7 +116,8 @@ export default function SharedLayout() {
             <p className="text-[11px] text-white/60">Connecting Farmers & Equipment</p>
           </div>
         </div>
-
+            {shouldShowToggle && <Toggle />}
+        
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {items.map(({ label, to, icon: Icon }) => {
             const active = location.pathname === to || location.pathname.startsWith(to + '/');
@@ -153,13 +156,14 @@ export default function SharedLayout() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col">
-
+          
         {/* Top bar with notification bell */}
+        
         <header className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 md:px-6 h-14 flex items-center justify-between">
           <p className="text-sm font-semibold text-gray-700 capitalize">
-            {user?.role === 'farmer' ? '👨‍🌾' : user?.role === 'renter' ? '🚜' : '🛡️'} {user?.name}
+           My {user?.role} Dashboard
           </p>
-
+           
           {/* Bell */}
           <div className="relative" ref={panelRef}>
             <button
@@ -173,7 +177,6 @@ export default function SharedLayout() {
                 </span>
               )}
             </button>
-
             {/* Dropdown panel */}
             {showNotifPanel && (
               <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
@@ -223,8 +226,10 @@ export default function SharedLayout() {
             <Outlet />
           </div>
         </main>
+        
       </div>
     </div>
+    
   );
 }
 

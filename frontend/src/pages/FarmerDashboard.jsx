@@ -161,8 +161,7 @@ export default function FarmerDashboard() {
   }
 
   return (
-    <>
-    <Toggle />
+    
     <div className="space-y-6">
       {/* Top stats */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -521,6 +520,6 @@ export default function FarmerDashboard() {
         </div>
       )}
     </div>
-    </>
+    
   );
 }

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { showToast } from '../utils/helpers';
 import { useTranslation } from 'react-i18next';
-import Toggle from '../components/Toggle';
+
 
 
 // Generate 24hr time options (00:00 to 24:00)
@@ -190,8 +190,7 @@ const Checkout = () => {
   }
 
   return (
-    <>
-    <Toggle />
+    
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <button
@@ -488,7 +487,7 @@ const Checkout = () => {
         </div>
       )}
     </div>
-    </>
+    
   );
 };
 

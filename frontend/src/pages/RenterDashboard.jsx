@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { showToast } from '../utils/helpers';
 import { useTranslation } from 'react-i18next';
-import Toggle from '../components/Toggle';
+
 
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
 
@@ -175,8 +175,7 @@ export default function RenterDashboard() {
   const pendingBookings = bookings.filter((b) => b.status === 'hold');
 
   return (
-    <>
-    <Toggle />
+   
     <div className="space-y-6">
 
       {/* Stat cards */}
@@ -424,6 +423,6 @@ export default function RenterDashboard() {
         </div>
       )}
     </div>
-    </>
+ 
   );
 }

@@ -7,7 +7,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useTranslation } from 'react-i18next';
-import Toggle from '../components/Toggle';
+
 
 // Fix default marker icon (Leaflet bug with bundlers)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -92,8 +92,7 @@ const Equipment = () => {
   }
 
   return (
-    <>
-    <Toggle />
+   
     <div className="space-y-6">
       {/* Welcome + search + filter */}
       <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
@@ -334,7 +333,7 @@ const Equipment = () => {
         </div>
       )}
     </div>
-    </>
+    
   );
 };
 

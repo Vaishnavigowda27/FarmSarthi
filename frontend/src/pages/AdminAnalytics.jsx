@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
 export default function AdminAnalytics() {
+
   const navigate = useNavigate();
   const { user } = useAuth();
   const [analytics, setAnalytics] = useState(null);
