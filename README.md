@@ -182,5 +182,5 @@ The interface supports English and Kannada. Language toggles instantly without a
 The administrator monitors platform activities and manages system data.Verify equipment listings.View bookings , system activity & Platform analytics.Resolve disputes between users.Maintain platform data integrity
 
 ---
-
+![UI interface](farmss.png)
 
