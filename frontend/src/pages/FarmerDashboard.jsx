@@ -3,8 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { showToast } from '../utils/helpers';
+import { useTranslation } from 'react-i18next';
+import Toggle from '../components/Toggle';
 
 export default function FarmerDashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [myBookings, setMyBookings] = useState([]);
@@ -158,6 +161,8 @@ export default function FarmerDashboard() {
   }
 
   return (
+    <>
+    <Toggle />
     <div className="space-y-6">
       {/* Top stats */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -516,5 +521,6 @@ export default function FarmerDashboard() {
         </div>
       )}
     </div>
+    </>
   );
 }

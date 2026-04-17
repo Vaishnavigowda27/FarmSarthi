@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { showToast } from '../utils/helpers';
+import { useTranslation } from 'react-i18next';
+import Toggle from '../components/Toggle';
+
 
 // Generate 24hr time options (00:00 to 24:00)
 const TIME_OPTIONS = Array.from({ length: 25 }, (_, i) =>
@@ -13,7 +16,7 @@ const Checkout = () => {
   const { equipmentId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-
+  const { t } = useTranslation();
   const [equipment, setEquipment] = useState(null);
   const [moreFromOwner, setMoreFromOwner] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -187,6 +190,8 @@ const Checkout = () => {
   }
 
   return (
+    <>
+    <Toggle />
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <button
@@ -483,6 +488,7 @@ const Checkout = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 

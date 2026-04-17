@@ -6,6 +6,8 @@ import { showToast } from '../utils/helpers';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useTranslation } from 'react-i18next';
+import Toggle from '../components/Toggle';
 
 // Fix default marker icon (Leaflet bug with bundlers)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,6 +29,7 @@ const userIcon = new L.Icon({
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
 
 const Equipment = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [equipment, setEquipment] = useState([]);
@@ -89,6 +92,8 @@ const Equipment = () => {
   }
 
   return (
+    <>
+    <Toggle />
     <div className="space-y-6">
       {/* Welcome + search + filter */}
       <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
@@ -329,6 +334,7 @@ const Equipment = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 

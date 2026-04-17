@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { showToast } from '../utils/helpers';
+import { useTranslation } from 'react-i18next';
+import Toggle from '../components/Toggle';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
@@ -88,6 +90,8 @@ const SettingsPage = () => {
   }
 
   return (
+    <>
+    <Toggle />
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold text-[#1B4332]">Settings</h1>
@@ -207,6 +211,7 @@ const SettingsPage = () => {
         </button>
       </section>
     </div>
+    </>
   );
 };
 
