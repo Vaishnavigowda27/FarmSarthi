@@ -8,6 +8,18 @@ import { useTranslation } from 'react-i18next';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
 
+//
+function StarRating({ rating = 0, size = 'sm' }) {
+  const starSize = size === 'sm' ? 'text-xs' : 'text-base';
+  return (
+    <span className={`${starSize} tracking-tight`}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <span key={s} className={s <= Math.round(rating) ? 'text-amber-400' : 'text-gray-200'}>★</span>
+      ))}
+    </span>
+  );
+}
+
 export default function RenterDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -17,6 +29,12 @@ export default function RenterDashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // ✅ NEW: Reviews state
+  const [reviews, setReviews] = useState([]); // flat list of all reviews across all equipment
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [selectedEquipmentFilter, setSelectedEquipmentFilter] = useState('all');
+
   const [newEquipment, setNewEquipment] = useState({
     name: '',
     description: '',
@@ -36,7 +54,13 @@ export default function RenterDashboard() {
     fetchBookings();
   }, [user, navigate]);
 
-  // ✅ Fixed: use dedicated renter endpoint
+  // ✅ Fetch reviews once equipment list is loaded
+  useEffect(() => {
+    if (myEquipments.length > 0) {
+      fetchAllReviews(myEquipments);
+    }
+  }, [myEquipments]);
+
   const fetchMyEquipments = async () => {
     try {
       const response = await axios.get('/api/equipment/renter/my-equipment');
@@ -55,6 +79,41 @@ export default function RenterDashboard() {
       setBookings(response.data.bookings || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);
+    }
+  };
+
+  // ✅ NEW: Fetch reviews for all equipment owned by this renter
+  const fetchAllReviews = async (equipmentList) => {
+    setReviewsLoading(true);
+    try {
+      // Fetch reviews for each equipment in parallel
+      const results = await Promise.allSettled(
+        equipmentList.map((eq) =>
+          axios.get(`/api/reviews/equipment/${eq._id}`).then((res) => ({
+            equipmentId: eq._id,
+            equipmentName: eq.name,
+            reviews: res.data.reviews || [],
+          }))
+        )
+      );
+
+      const allReviews = results
+        .filter((r) => r.status === 'fulfilled')
+        .flatMap((r) =>
+          r.value.reviews.map((review) => ({
+            ...review,
+            equipmentId: r.value.equipmentId,
+            equipmentName: r.value.equipmentName,
+          }))
+        );
+
+      // Sort newest first
+      allReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setReviews(allReviews);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setReviewsLoading(false);
     }
   };
 
@@ -174,8 +233,24 @@ export default function RenterDashboard() {
   const activeRents = bookings.filter((b) => b.status === 'ongoing').length;
   const pendingBookings = bookings.filter((b) => b.status === 'hold');
 
+  // ✅ NEW: Computed review stats
+  const avgOverallRating = reviews.length
+    ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)
+    : null;
+
+  const filteredReviews = selectedEquipmentFilter === 'all'
+    ? reviews
+    : reviews.filter((r) => r.equipmentId === selectedEquipmentFilter);
+
+  // Per-equipment average rating map (used in My Equipment section)
+  const ratingByEquipment = reviews.reduce((acc, r) => {
+    if (!acc[r.equipmentId]) acc[r.equipmentId] = { sum: 0, count: 0 };
+    acc[r.equipmentId].sum += r.rating || 0;
+    acc[r.equipmentId].count += 1;
+    return acc;
+  }, {});
+
   return (
-   
     <div className="space-y-6">
 
       {/* Stat cards */}
@@ -323,44 +398,61 @@ export default function RenterDashboard() {
                 {myEquipments.length === 0 ? (
                   <p className="text-xs text-gray-500">No equipment added yet.</p>
                 ) : (
-                  myEquipments.map((eq) => (
-                    <div key={eq._id} className="border border-gray-100 rounded-2xl overflow-hidden flex">
-                      <div
-                        className={`h-20 w-24 bg-farm-primary/20 flex-shrink-0 flex items-center justify-center overflow-hidden ${eq.photos?.[0]?.url ? 'cursor-pointer' : ''}`}
-                        onClick={() => eq.photos?.[0]?.url && setSelectedImage(`${BASE_URL}${eq.photos[0].url}`)}
-                      >
-                        {eq.photos?.[0]?.url ? (
-                          <img src={`${BASE_URL}${eq.photos[0].url}`} alt={eq.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-2xl">🚜</span>
-                        )}
-                      </div>
-                      <div className="flex-1 p-3 space-y-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <p className="font-semibold text-sm text-gray-900 line-clamp-1">{eq.name}</p>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold shrink-0">{eq.category}</span>
+                  myEquipments.map((eq) => {
+                    // ✅ NEW: show avg rating inline on each equipment card
+                    const eqRating = ratingByEquipment[eq._id];
+                    const avgRating = eqRating ? (eqRating.sum / eqRating.count).toFixed(1) : null;
+
+                    return (
+                      <div key={eq._id} className="border border-gray-100 rounded-2xl overflow-hidden flex">
+                        <div
+                          className={`h-20 w-24 bg-farm-primary/20 flex-shrink-0 flex items-center justify-center overflow-hidden ${eq.photos?.[0]?.url ? 'cursor-pointer' : ''}`}
+                          onClick={() => eq.photos?.[0]?.url && setSelectedImage(`${BASE_URL}${eq.photos[0].url}`)}
+                        >
+                          {eq.photos?.[0]?.url ? (
+                            <img src={`${BASE_URL}${eq.photos[0].url}`} alt={eq.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-2xl"></span>
+                          )}
                         </div>
-                        <p className="text-[11px] text-gray-500 line-clamp-2">{eq.description}</p>
-                        <p className="text-[11px] text-gray-600 font-medium">₹{eq.pricing?.perHour || 0}/hr • ₹{eq.pricing?.perKm || 0}/km</p>
-                        <p className="text-[11px] text-gray-500">{eq.totalUnits || 1} unit{(eq.totalUnits || 1) > 1 ? 's' : ''} listed</p>
-                        {eq.verificationStatus !== 'verified' && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold">
-                            ⏳ Pending approval
-                          </span>
-                        )}
-                        <div className="pt-1 flex flex-wrap justify-end gap-2">
-                          <button onClick={() => toggleAvailability(eq)}
-                            className="px-3 py-1 rounded-full text-[11px] font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50">
-                            {eq.availability?.isAvailable ? 'Pause' : 'Resume'}
-                          </button>
-                          <button onClick={() => deleteListing(eq)}
-                            className="px-3 py-1 rounded-full text-[11px] font-semibold border border-red-200 text-red-700 hover:bg-red-50">
-                            Delete
-                          </button>
+                        <div className="flex-1 p-3 space-y-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="font-semibold text-sm text-gray-900 line-clamp-1">{eq.name}</p>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold shrink-0">{eq.category}</span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 line-clamp-2">{eq.description}</p>
+                          <p className="text-[11px] text-gray-600 font-medium">₹{eq.pricing?.perHour || 0}/hr • ₹{eq.pricing?.perKm || 0}/km</p>
+                          <p className="text-[11px] text-gray-500">{eq.totalUnits || 1} unit{(eq.totalUnits || 1) > 1 ? 's' : ''} listed</p>
+
+                          {/* ✅ NEW: inline rating badge */}
+                          {avgRating ? (
+                            <div className="flex items-center gap-1">
+                              <StarRating rating={parseFloat(avgRating)} />
+                              <span className="text-[11px] text-gray-500">{avgRating} ({eqRating.count} review{eqRating.count !== 1 ? 's' : ''})</span>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-gray-400 italic">No reviews yet</p>
+                          )}
+
+                          {eq.verificationStatus !== 'verified' && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold">
+                               Pending approval
+                            </span>
+                          )}
+                          <div className="pt-1 flex flex-wrap justify-end gap-2">
+                            <button onClick={() => toggleAvailability(eq)}
+                              className="px-3 py-1 rounded-full text-[11px] font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50">
+                              {eq.availability?.isAvailable ? 'Pause' : 'Resume'}
+                            </button>
+                            <button onClick={() => deleteListing(eq)}
+                              className="px-3 py-1 rounded-full text-[11px] font-semibold border border-red-200 text-red-700 hover:bg-red-50">
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -411,6 +503,81 @@ export default function RenterDashboard() {
         </div>
       </div>
 
+      {/* ✅ NEW: Equipment Reviews Section */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-base font-bold text-gray-900">Equipment Reviews</h2>
+            {avgOverallRating && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-100">
+                <StarRating rating={parseFloat(avgOverallRating)} />
+                <span className="text-xs font-bold text-amber-700">{avgOverallRating}</span>
+                <span className="text-xs text-amber-600">({reviews.length} total)</span>
+              </div>
+            )}
+          </div>
+
+          
+        </div>
+
+        {reviewsLoading ? (
+          <div className="flex items-center gap-2 py-6 justify-center">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-farm-primary border-t-transparent" />
+            <p className="text-xs text-gray-500">Loading reviews...</p>
+          </div>
+        ) : filteredReviews.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-2xl mb-2">⭐</p>
+            <p className="text-sm text-gray-500">No reviews yet for your equipment.</p>
+            <p className="text-xs text-gray-400 mt-1">Reviews will appear here once farmers complete bookings and leave feedback.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredReviews.map((review) => (
+              <div key={review._id} className="border border-gray-100 rounded-2xl p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {/* Farmer avatar placeholder */}
+                    <div className="w-8 h-8 rounded-full bg-farm-primary/10 flex items-center justify-center text-sm font-bold text-farm-primary flex-shrink-0">
+                      {(review.farmer?.name || review.user?.name || 'F')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {review.farmer?.name || review.user?.name || 'Anonymous Farmer'}
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        for <span className="text-farm-primary font-medium">{review.equipmentName}</span>
+                        {' • '}{new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                    <StarRating rating={review.rating} />
+                    <span className="text-[11px] font-bold text-amber-600">{review.rating}/5</span>
+                  </div>
+                </div>
+
+                {review.comment && (
+                  <p className="text-xs text-gray-600 leading-relaxed pl-10">"{review.comment}"</p>
+                )}
+
+                {/* Sub-ratings if your schema has them */}
+                {review.ratings && (
+                  <div className="pl-10 flex flex-wrap gap-3">
+                    {Object.entries(review.ratings).map(([key, val]) => (
+                      <div key={key} className="flex items-center gap-1">
+                        <span className="text-[10px] text-gray-400 capitalize">{key}:</span>
+                        <StarRating rating={val} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Image lightbox */}
       {selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4" onClick={() => setSelectedImage(null)}>
@@ -423,6 +590,5 @@ export default function RenterDashboard() {
         </div>
       )}
     </div>
- 
   );
 }
