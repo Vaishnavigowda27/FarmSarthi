@@ -92,7 +92,7 @@ const ReviewsPanel = ({ equipmentId, onClose }) => {
             reviews.map((r) => (
               <div key={r._id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-gray-800">{r.reviewer?.name || 'Anonymous'}</span>
+                  <span className="text-xs font-semibold text-gray-800">{r.farmer?.name || 'Anonymous'}</span>
                   <span className="text-[10px] text-gray-400">
                     {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}
                   </span>
@@ -146,26 +146,14 @@ const Equipment = () => {
     }
   }, [userLat, userLng, radius]);
 
-  /* Batch-fetch ratings for all equipment items */
-  const fetchAllRatings = async (items) => {
-    if (!items.length) return;
-    const results = await Promise.allSettled(
-      items.map((item) =>
-        axios.get(`/api/reviews/equipment/${item._id}`).then((r) => {
-          const reviews = r.data.reviews || [];
-          const count = reviews.length;
-          const avg = count
-            ? reviews.reduce((sum, rv) => sum + (rv.rating || 0), 0) / count
-            : 0;
-          return { id: item._id, avg, count };
-        })
-      )
-    );
+  /* averageRating & totalReviews are pre-computed on the equipment doc by the controller */
+  const fetchAllRatings = (items) => {
     const map = {};
-    results.forEach((res) => {
-      if (res.status === 'fulfilled') {
-        map[res.value.id] = { avg: res.value.avg, count: res.value.count };
-      }
+    items.forEach((item) => {
+      map[item._id] = {
+        avg: item.averageRating ?? 0,
+        count: item.totalReviews ?? 0,
+      };
     });
     setRatingsMap(map);
   };
