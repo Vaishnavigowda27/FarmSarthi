@@ -15,7 +15,7 @@ const Login = () => {
   const [otp, setOTP] = useState('');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  
+
   const handlePhoneChange = (e) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setPhone(value);
@@ -69,172 +69,157 @@ const Login = () => {
 
   return (
     <>
-    <Navbar />
+      <Navbar />
 
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center px-4 py-10">
-      
-      <div className="w-full max-w-md">
-        {/* Login card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-6 py-8 sm:px-8 sm:py-10">
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-6 py-8 sm:px-8 sm:py-10">
 
-          {/* Branding inside card */}
-          <Link to="/" className="flex items-center gap-2 mb-6">
-            <img src={logo} alt="FarmSaarthi Logo" className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1" />
-            <div>
-              <p className="text-base font-bold text-[#1B4332]">{t('app.name')}</p>
-              <p className="text-[11px] text-gray-500">Connecting Farmers &amp; Equipment</p>
-            </div>
-          </Link>
-
-          <h1 className="text-xl font-bold text-[#1B4332] mb-1">Welcome back</h1>
-          <p className="text-xs text-gray-500 mb-6">
-            Login using your mobile number for easy access.
-          </p>
-
-          {step === 1 ? (
-            <div className="space-y-4">
+            <Link to="/" className="flex items-center gap-2 mb-6">
+              <img src={logo} alt="FarmSaarthi Logo" className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1" />
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  {t('auth.phone')}
-                </label>
-                <div className="flex items-stretch rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
-                  <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
-                    +91
-                  </span>
+                <p className="text-base font-bold text-[#1B4332]">{t('app.name')}</p>
+                <p className="text-[11px] text-gray-500">{t('app.tagline')}</p>
+              </div>
+            </Link>
+
+            <h1 className="text-xl font-bold text-[#1B4332] mb-1">{t('auth.welcomeBack')}</h1>
+            <p className="text-xs text-gray-500 mb-6">{t('auth.loginSubtitle')}</p>
+
+            {step === 1 ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    {t('auth.phone')}
+                  </label>
+                  <div className="flex items-stretch rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+                    <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      className="flex-1 px-3 py-3 text-sm bg-transparent outline-none"
+                      placeholder="9876543210"
+                      maxLength={10}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSendOTP();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendOTP}
+                      disabled={loading || phone.length !== 10}
+                      className="px-4 text-xs font-semibold bg-[#2D6A4F] text-white disabled:bg-gray-300"
+                    >
+                      {loading ? t('auth.sending') : t('auth.getOtp')}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">{t('auth.otpHint')}</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSendOTP}
+                  disabled={loading || phone.length !== 10}
+                  className="w-full mt-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white py-3 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300"
+                >
+                  {loading ? t('auth.sendingOtp') : t('auth.login')}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    {t('auth.phone')}
+                  </label>
+                  <div className="flex rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+                    <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      value={phone}
+                      disabled
+                      className="flex-1 px-3 py-3 text-sm bg-transparent text-gray-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    {t('auth.otp')}
+                  </label>
                   <input
-                    type="tel"
-                    value={phone}
-                    onChange={handlePhoneChange}
-                    className="flex-1 px-3 py-3 text-sm bg-transparent outline-none"
-                    placeholder="9876543210"
-                    maxLength={10}
+                    type="text"
+                    value={otp}
+                    onChange={handleOTPChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1B4332] text-center text-2xl tracking-[0.4em] font-semibold"
+                    placeholder="••••••"
+                    maxLength={6}
+                    autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleSendOTP();
+                        handleLogin();
                       }
                     }}
                   />
+                  <p className="text-[11px] text-gray-400 mt-1 text-center">{t('auth.devOtpHint')}</p>
+                </div>
+
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={handleSendOTP}
-                    disabled={loading || phone.length !== 10}
-                    className="px-4 text-xs font-semibold bg-[#2D6A4F] text-white disabled:bg-gray-300"
+                    onClick={() => { setStep(1); setOTP(''); }}
+                    className="w-1/3 border border-gray-200 text-xs font-semibold text-gray-700 rounded-2xl py-3 hover:bg-gray-50 transition"
                   >
-                    {loading ? '…' : t('auth.sendOtp')}
+                    {t('common.back')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogin}
+                    disabled={loading || otp.length !== 6}
+                    className="flex-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white py-3 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300"
+                  >
+                    {loading ? t('auth.verifying') : t('auth.login')}
                   </button>
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">
-                  We&apos;ll send a 6‑digit code to verify your number.
-                </p>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleSendOTP}
-                disabled={loading || phone.length !== 10}
-                className="w-full mt-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white py-3 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300"
-              >
-                {loading ? 'Sending OTP…' : t('auth.login')}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  {t('auth.phone')}
-                </label>
-                <div className="flex rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
-                  <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    value={phone}
-                    disabled
-                    className="flex-1 px-3 py-3 text-sm bg-transparent text-gray-500 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  {t('auth.otp')}
-                </label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={handleOTPChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1B4332] text-center text-2xl tracking-[0.4em] font-semibold"
-                  placeholder="••••••"
-                  maxLength={6}
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleLogin();
-                    }
-                  }}
-                />
-                <p className="text-[11px] text-gray-400 mt-1 text-center">
-                  Dev mode: check backend terminal for the OTP.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setStep(1);
-                    setOTP('');
-                  }}
-                  className="w-1/3 border border-gray-200 text-xs font-semibold text-gray-700 rounded-2xl py-3 hover:bg-gray-50 transition"
+                  onClick={handleSendOTP}
+                  disabled={loading}
+                  className="w-full text-[11px] text-[#2D6A4F] font-medium hover:underline disabled:text-gray-400"
                 >
-                  {t('common.back')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLogin}
-                  disabled={loading || otp.length !== 6}
-                  className="flex-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white py-3 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300"
-                >
-                  {loading ? 'Verifying…' : t('auth.login')}
+                  {t('auth.resendOtp')}
                 </button>
               </div>
+            )}
 
-              <button
-                type="button"
-                onClick={handleSendOTP}
-                disabled={loading}
-                className="w-full text-[11px] text-[#2D6A4F] font-medium hover:underline disabled:text-gray-400"
-              >
-                Didn&apos;t receive OTP? Resend
-              </button>
+            <div className="mt-6 flex items-center justify-between text-[11px] text-gray-400">
+              <label className="inline-flex items-center gap-1">
+                <input type="checkbox" className="rounded border-gray-300" />
+                <span>{t('auth.rememberMe')}</span>
+              </label>
+              <span>{t('auth.needHelp')}</span>
             </div>
-          )}
 
-          <div className="mt-6 flex items-center justify-between text-[11px] text-gray-400">
-            <label className="inline-flex items-center gap-1">
-              <input type="checkbox" className="rounded border-gray-300" />
-              <span>Remember me</span>
-            </label>
-            <span>Need help? Contact support.</span>
-          </div>
-
-          <div className="mt-6 text-center border-t pt-4">
-            <p className="text-xs text-gray-500">
-              Don&apos;t have an account?{' '}
-              <Link
-                to="/register"
-                className="text-[#2D6A4F] font-semibold hover:underline"
-              >
-                {t('common.register')}
-              </Link>
-            </p>
+            <div className="mt-6 text-center border-t pt-4">
+              <p className="text-xs text-gray-500">
+                {t('auth.noAccount')}{' '}
+                <Link to="/register" className="text-[#2D6A4F] font-semibold hover:underline">
+                  {t('auth.registerHere')}
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 };

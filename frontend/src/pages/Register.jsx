@@ -94,15 +94,9 @@ const Register = () => {
 
     setLoading(true);
     try {
-      console.log('Registering with data:', {
-        ...formData,
-        phone: `+91${formData.phone}`,
-      });
+      console.log('Registering with data:', { ...formData, phone: `+91${formData.phone}` });
 
-      const user = await register({
-        ...formData,
-        phone: `+91${formData.phone}`,
-      });
+      const user = await register({ ...formData, phone: `+91${formData.phone}` });
 
       showToast('Registration successful!', 'success');
 
@@ -118,52 +112,144 @@ const Register = () => {
 
   return (
     <>
-    <Navbar />
-    
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-lg">
-        {/* Registration card — clean white, no background overlay */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 px-6 py-8 sm:px-10 sm:py-10">
+      <Navbar />
 
-          {/* Header */}
-          <div className="mb-6">
-          <Link to="/" className="flex items-center gap-2 mb-6">
-  <img src={logo} alt="FarmSaarthi Logo" className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1" />
-  <div>
-    <p className="text-base font-bold text-[#1B4332]">FarmSaarthi</p>
-    <p className="text-[11px] text-gray-500">Connecting Farmers &amp; Equipment</p>
-  </div>
-</Link>
-            <p className="text-xs text-gray-500">Welcome to</p>
-            <p className="text-xl font-bold text-[#1B4332]">
-              FarmSaarthi <span className="text-[#2D6A4F]">Registration</span>
-            </p>
-          </div>
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-lg">
+          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 px-6 py-8 sm:px-10 sm:py-10">
 
-          {step === 1 ? (
-            <div className="space-y-4">
-              <p className="text-xs text-gray-500">
-                Tell us a bit about yourself to get started.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="mb-6">
+              <Link to="/" className="flex items-center gap-2 mb-6">
+                <img src={logo} alt="FarmSaarthi Logo" className="h-9 w-9 rounded-2xl object-contain bg-[#2D6A4F] p-1" />
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="w-full rounded-2xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#1B4332]"
-                    placeholder="Your full name"
-                  />
+                  <p className="text-base font-bold text-[#1B4332]">{t('app.name')}</p>
+                  <p className="text-[11px] text-gray-500">{t('app.tagline')}</p>
                 </div>
+              </Link>
+              <p className="text-xs text-gray-500">{t('auth.welcomeTo')}</p>
+              <p className="text-xl font-bold text-[#1B4332]">
+                {t('app.name')} <span className="text-[#2D6A4F]">{t('auth.registration')}</span>
+              </p>
+            </div>
+
+            {step === 1 ? (
+              <div className="space-y-4">
+                <p className="text-xs text-gray-500">{t('auth.registerSubtitle')}</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      {t('auth.name')}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full rounded-2xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#1B4332]"
+                      placeholder={t('auth.namePlaceholder')}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      {t('auth.phone')}
+                    </label>
+                    <div className="flex rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+                      <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handlePhoneChange}
+                        className="flex-1 px-3 py-2.5 text-sm bg-transparent outline-none"
+                        placeholder="9876543210"
+                        maxLength={10}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-[1.2fr,0.8fr] gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      {t('auth.address')}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.location.address}
+                      onChange={(e) =>
+                        setFormData({ ...formData, location: { ...formData.location, address: e.target.value } })
+                      }
+                      className="w-full rounded-2xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#1B4332]"
+                      placeholder={t('auth.addressPlaceholder')}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={handleGetLocation}
+                      disabled={loading}
+                      className="w-full flex items-center justify-center gap-1 rounded-2xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs py-2.5 transition disabled:bg-gray-300"
+                    >
+                      <span>📍</span>
+                      {t('auth.getLocation')}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Role selection cards */}
+                <div className="mt-2">
+                  <p className="text-xs font-medium text-gray-700 mb-2">{t('auth.role')}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, role: 'farmer' })}
+                      className={`rounded-2xl border-2 px-4 py-3 text-left text-xs font-medium transition ${
+                        formData.role === 'farmer'
+                          ? 'border-[#1B4332] bg-[#1B4332]/5 text-[#1B4332]'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xl">🚜</span>
+                        <p className="font-semibold">{t('auth.farmer')}</p>
+                      </div>
+                      <p className="text-[11px] text-gray-500">{t('auth.farmerDesc')}</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, role: 'renter' })}
+                      className={`rounded-2xl border-2 px-4 py-3 text-left text-xs font-medium transition ${
+                        formData.role === 'renter'
+                          ? 'border-[#1B4332] bg-[#1B4332]/5 text-[#1B4332]'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xl">🛠️</span>
+                        <p className="font-semibold">{t('auth.renter')}</p>
+                      </div>
+                      <p className="text-[11px] text-gray-500">{t('auth.renterDesc')}</p>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSendOTP}
+                  disabled={loading || !formData.name || formData.phone.length !== 10 || !formData.location.address}
+                  className="w-full mt-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-2xl py-3 text-sm font-semibold transition disabled:bg-gray-300"
+                >
+                  {loading ? t('auth.sendingOtp') : t('auth.verifyOtp')}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-xs text-gray-500">{t('auth.otpSubtitle')}</p>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Mobile Number
+                    {t('auth.phone')}
                   </label>
                   <div className="flex rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
                     <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
@@ -172,187 +258,65 @@ const Register = () => {
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={handlePhoneChange}
-                      className="flex-1 px-3 py-2.5 text-sm bg-transparent outline-none"
-                      placeholder="9876543210"
-                      maxLength={10}
+                      disabled
+                      className="flex-1 px-3 py-2.5 text-sm bg-transparent text-gray-500 outline-none"
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-[1.2fr,0.8fr] gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Your Location
+                    {t('auth.otp')}
                   </label>
                   <input
                     type="text"
-                    value={formData.location.address}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        location: {
-                          ...formData.location,
-                          address: e.target.value,
-                        },
-                      })
-                    }
-                    className="w-full rounded-2xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#1B4332]"
-                    placeholder="Village, Taluk, District"
+                    value={formData.otp}
+                    onChange={handleOTPChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1B4332] text-center text-2xl tracking-[0.4em] font-semibold"
+                    placeholder="••••••"
+                    maxLength={6}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleRegister();
+                      }
+                    }}
                   />
+                  <p className="text-[11px] text-gray-400 mt-1 text-center">{t('auth.devOtpHint')}</p>
                 </div>
-                <div className="flex items-end">
+
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={handleGetLocation}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-1 rounded-2xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs py-2.5 transition disabled:bg-gray-300"
+                    onClick={() => { setStep(1); setFormData({ ...formData, otp: '' }); }}
+                    className="w-1/3 border border-gray-200 text-xs font-semibold text-gray-700 rounded-2xl py-3 hover:bg-gray-50 transition"
                   >
-                    <span></span>
-                    Get Current Location
+                    {t('common.back')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRegister}
+                    disabled={loading || formData.otp.length !== 6}
+                    className="flex-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white py-3 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300"
+                  >
+                    {loading ? t('auth.registering') : t('auth.register')}
                   </button>
                 </div>
               </div>
+            )}
 
-              {/* Role selection cards */}
-              <div className="mt-2">
-                <p className="text-xs font-medium text-gray-700 mb-2">
-                  Select Your Role
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: 'farmer' })}
-                    className={`rounded-2xl border-2 px-4 py-3 text-left text-xs font-medium transition ${
-                      formData.role === 'farmer'
-                        ? 'border-[#1B4332] bg-[#1B4332]/5 text-[#1B4332]'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl"></span>
-                      <p className="font-bold">I am a Farmer</p>
-                    </div>
-                    <p className="text-[11px] text-gray-500">
-                       Find &amp; book equipment for your farm.
-                    </p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: 'renter' })}
-                    className={`rounded-2xl border-2 px-4 py-3 text-left text-xs font-medium transition ${
-                      formData.role === 'renter'
-                        ? 'border-[#1B4332] bg-[#1B4332]/5 text-[#1B4332]'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl"></span>
-                      <p className="font-bold">I am an Equipment Owner</p>
-                    </div>
-                    <p className="text-[11px] text-gray-500">
-                      List your machines &amp; track earnings.
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSendOTP}
-                disabled={
-                  loading ||
-                  !formData.name ||
-                  formData.phone.length !== 10 ||
-                  !formData.location.address
-                }
-                className="w-full mt-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-2xl py-3 text-sm font-semibold transition disabled:bg-gray-300"
-              >
-                {loading ? 'Sending OTP…' : 'Verify OTP'}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
+            <div className="mt-6 text-center border-t pt-4">
               <p className="text-xs text-gray-500">
-                Enter the 6‑digit OTP sent to your mobile number.
+                {t('auth.haveAccount')}{' '}
+                <Link to="/login" className="text-[#2D6A4F] font-semibold hover:underline">
+                  {t('auth.loginHere')}
+                </Link>
               </p>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Mobile Number
-                </label>
-                <div className="flex rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
-                  <span className="px-3 flex items-center text-xs font-semibold text-gray-700 border-r border-gray-200">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    disabled
-                    className="flex-1 px-3 py-2.5 text-sm bg-transparent text-gray-500 outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  {t('auth.otp')}
-                </label>
-                <input
-                  type="text"
-                  value={formData.otp}
-                  onChange={handleOTPChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1B4332] text-center text-2xl tracking-[0.4em] font-semibold"
-                  placeholder="••••••"
-                  maxLength={6}
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleRegister();
-                    }
-                  }}
-                />
-                <p className="text-[11px] text-gray-400 mt-1 text-center">
-                  Dev mode: check backend terminal for the OTP.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep(1);
-                    setFormData({ ...formData, otp: '' });
-                  }}
-                  className="w-1/3 border border-gray-200 text-xs font-semibold text-gray-700 rounded-2xl py-3 hover:bg-gray-50 transition"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRegister}
-                  disabled={loading || formData.otp.length !== 6}
-                  className="flex-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white py-3 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300"
-                >
-                  {loading ? 'Registering…' : 'Complete Registration'}
-                </button>
-              </div>
             </div>
-          )}
-
-          <div className="mt-6 text-center border-t pt-4">
-            <p className="text-xs text-gray-500">
-              Already have an account?{' '}
-              <Link
-                to="/login"
-                className="text-[#2D6A4F] font-semibold hover:underline"
-              >
-                Login here
-              </Link>
-            </p>
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 };

@@ -1,62 +1,28 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaTractor, FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa';
-import { Tractor, CalendarCheck, ShieldCheck, Phone, ChevronDown, ChevronUp } from 'lucide-react';
-
-const faqs = [
-  {
-    q: 'How do I rent equipment?',
-    a: 'Sign up as a farmer, browse equipment near your location, select a slot, and pay a 10% advance to confirm your booking.',
-  },
-  {
-    q: 'Who can list equipment?',
-    a: 'Anyone registered as a renter (equipment owner) can list their machinery. All listings go through admin verification before going live.',
-  },
-  {
-    q: 'Is my payment secure?',
-    a: 'Yes. We use secure payment methods like QR code and UPI for all transactions. Only a 2% advance is charged at booking; the rest is settled directly.',
-  },
-  {
-    q: 'What if the equipment breaks down?',
-    a: 'Contact the equipment owner immediately. Raise a dispute through the app and our support team will assist within 24 hours.',
-  },
-  {
-    q: 'Can I cancel a booking?',
-    a: 'Yes, cancellations are allowed up to 12 hours before the scheduled slot. Service charges are not refunded .',
-  },
-  {
-    q: 'Which areas do you currently serve?',
-    a: 'We currently operate in and around Mysore, Karnataka. More districts are being added soon.',
-  },
-];
-
-const services = [
-  {
-    icon: Tractor,
-    title: 'Equipment Search',
-    desc: 'Find tractors, harvesters, sprayers and more within your radius.',
-  },
-  {
-    icon: CalendarCheck,
-    title: 'Slot Booking',
-    desc: 'Book equipment for exact time slots that fit your schedule.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Secure Payments',
-    desc: 'Pay a advance via by scanning QR code or thorugh UPI generated to lock your booking.',
-  },
-  {
-    icon: Tractor,
-    title: 'Equipment utilization',
-    desc: 'Let your unused equipment generate income by renting it out to trusted users',
-  },
-];
+import { Tractor, CalendarCheck, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
 
 const Footer = () => {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState(null); // 'about' | 'services' | 'faq'
   const [openFaq, setOpenFaq] = useState(null);
+
+  const faqs = [
+    { q: t('footer.faq1Q'), a: t('footer.faq1A') },
+    { q: t('footer.faq2Q'), a: t('footer.faq2A') },
+    { q: t('footer.faq3Q'), a: t('footer.faq3A') },
+    { q: t('footer.faq4Q'), a: t('footer.faq4A') },
+    { q: t('footer.faq5Q'), a: t('footer.faq5A') },
+    { q: t('footer.faq6Q'), a: t('footer.faq6A') },
+  ];
+
+  const services = [
+    { icon: Tractor,       title: t('footer.service1Title'), desc: t('footer.service1Desc') },
+    { icon: CalendarCheck, title: t('footer.service2Title'), desc: t('footer.service2Desc') },
+    { icon: ShieldCheck,   title: t('footer.service3Title'), desc: t('footer.service3Desc') },
+    { icon: Tractor,       title: t('footer.service4Title'), desc: t('footer.service4Desc') },
+  ];
 
   const toggle = (section) => {
     setActiveSection(activeSection === section ? null : section);
@@ -71,18 +37,13 @@ const Footer = () => {
         <div className="bg-[#1B4332] px-6 py-10">
           <div className="max-w-3xl mx-auto text-center space-y-4">
             <h2 className="text-2xl font-extrabold text-white">
-              Bridging Farmers & Equipment Owners
+              {t('footer.aboutTitle')}
             </h2>
             <p className="text-sm text-white/70 leading-relaxed">
-              FarmSaarthi is a location-based agricultural rental platform built to
-              make modern farming equipment accessible to every farmer .
-               We connect equipment owners with
-              farmers who need machinery for a day, a week, or a season.
+              {t('footer.aboutDesc1')}
             </p>
             <p className="text-sm text-white/60 leading-relaxed">
-              Our mission is simple: reduce the cost of farming, increase
-              equipment utilisation, and help farming community grow
-              together.
+              {t('footer.aboutDesc2')}
             </p>
           </div>
         </div>
@@ -153,9 +114,9 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
               <FaTractor className="text-[#74C69D] text-3xl" />
-              <span className="text-2xl font-bold">{t('app.name')}</span>
+              <span className="text-2xl font-bold">Farm Saarthi</span>
             </div>
-            <p className="text-gray-400 mb-4 text-sm">{t('app.tagline')}</p>
+            <p className="text-gray-400 mb-4 text-sm">Connecting Farmers and Equipments</p>
             <div className="flex space-x-4">
               <FaFacebook className="text-2xl hover:text-[#74C69D] cursor-pointer transition-colors" />
               <FaTwitter className="text-2xl hover:text-[#74C69D] cursor-pointer transition-colors" />
@@ -163,14 +124,14 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Quick Links — labels stay in English */}
           <div>
             <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
             <ul className="space-y-2">
               {[
-                { label: 'About Us', key: 'about' },
-                { label: 'Services', key: 'services' },
-                { label: "FAQ's", key: 'faq' },
+                { label: 'About Us',  key: 'about'    },
+                { label: 'Services',  key: 'services' },
+                { label: "FAQ's",     key: 'faq'      },
               ].map(({ label, key }) => (
                 <li key={key}>
                   <button
@@ -190,15 +151,15 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold text-lg mb-4">Contact</h3>
             <ul className="space-y-2 text-gray-400 text-sm">
-              <li>Email: support@farmsaarthi.com</li>
-              <li>Phone: +91 9999999999</li>
-              <li>Mysore, Karnataka</li>
+              <li>{t('footer.contactEmail')}</li>
+              <li>{t('footer.contactPhone')}</li>
+              <li>{t('footer.contactCity')}</li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-          <p>&copy; 2026 {t('app.name')}. All rights reserved.</p>
+          <p>&copy; 2026 FarmSaarthi. All rights reserved.</p>
         </div>
       </div>
     </footer>
