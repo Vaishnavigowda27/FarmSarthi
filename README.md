@@ -4,6 +4,9 @@ Farm Saarthi is a full-stack web platform that connects **small & marginal farme
 
 This project was developed as a final-year undergraduate project (2025–26).
 
+## Demo Video
+[Watch / download the demo video](demo/Screen%20Recording%202026-04-22%20195440.mp4)
+
 ## Problem
 In many rural areas, farmers need machinery (tractor, harvester, sprayer, etc.) only for short seasonal windows. Buying equipment is expensive, and the current rental system often depends on informal middlemen with:
 - No clear visibility of equipment availability near the farmer
@@ -23,6 +26,7 @@ In many rural areas, farmers need machinery (tractor, harvester, sprayer, etc.) 
 - **Bilingual UI**: English + Kannada (instant toggle)
 
 ## User Roles
+
 ### Farmer
 - Search equipment within a configurable radius
 - View results with distance, pricing, availability, and ratings
@@ -52,6 +56,7 @@ In many rural areas, farmers need machinery (tractor, harvester, sprayer, etc.) 
 - **Reviews**: only after completed bookings; updates average rating
 
 ## Tech Stack
+
 ### Frontend (`frontend/`)
 - React + Vite
 - Tailwind CSS
@@ -72,9 +77,6 @@ In many rural areas, farmers need machinery (tractor, harvester, sprayer, etc.) 
 - `backend/` — REST API server
 - `demo/` — demo video (Git LFS)
 
-## Demo Video
-- `demo/Screen Recording 2026-04-22 195440.mp4`
-
 ## Local Setup
 
 ### Prerequisites
@@ -85,5 +87,10 @@ In many rural areas, farmers need machinery (tractor, harvester, sprayer, etc.) 
 ### Backend
 ```bash
 cd backend
+npm install
+npm run dev
+
+Frontend
+cd frontend
 npm install
 npm run dev
